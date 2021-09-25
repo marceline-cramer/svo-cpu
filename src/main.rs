@@ -2,8 +2,8 @@ use minifb::{Key, Window, WindowOptions};
 
 mod voxbuf;
 
-const WIDTH: usize = 640;
-const HEIGHT: usize = 480;
+const WIDTH: usize = 240;
+const HEIGHT: usize = 180;
 
 fn main() {
     let vb = voxbuf::VoxBuf::new_dummy();
@@ -15,7 +15,10 @@ fn main() {
         "Test - ESC to exit",
         WIDTH,
         HEIGHT,
-        WindowOptions::default(),
+        WindowOptions {
+            scale: minifb::Scale::X4,
+            ..Default::default()
+        },
     )
     .unwrap_or_else(|e| {
         panic!("{}", e);
