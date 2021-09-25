@@ -1,5 +1,7 @@
 use minifb::{Key, Window, WindowOptions};
 
+mod voxbuf;
+
 const WIDTH: usize = 640;
 const HEIGHT: usize = 480;
 
