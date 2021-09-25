@@ -84,7 +84,7 @@ impl VoxBuf {
 
         let mut nodes = vec![Node::default()];
 
-        let mut stack = Vec::<(
+        let mut stack = std::collections::VecDeque::<(
             u16,     // 0: x
             u16,     // 1: y
             u16,     // 2: z
@@ -92,9 +92,9 @@ impl VoxBuf {
             u8,      // 4: lod
         )>::new();
 
-        stack.push((0, 0, 0, 0, 7));
+        stack.push_front((0, 0, 0, 0, 7));
 
-        while let Some(iter) = stack.pop() {
+        while let Some(iter) = stack.pop_back() {
             let parent = iter.3 as usize;
             let lod = iter.4;
 
@@ -110,7 +110,7 @@ impl VoxBuf {
             for i in 0..8 {
                 let child = (cursor + i) as NodeRef;
                 node.children[i] = child;
-                stack.push((
+                stack.push_back((
                     iter.0 | ((i & 1) << lod) as u16,
                     iter.1 | (((i & 2) >> 1) << lod) as u16,
                     iter.2 | (((i & 4) >> 2) << lod) as u16,
