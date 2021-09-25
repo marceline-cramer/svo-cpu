@@ -1,5 +1,6 @@
 use minifb::{Key, Window, WindowOptions};
 
+mod camera;
 mod voxbuf;
 
 const WIDTH: usize = 240;
@@ -10,12 +11,12 @@ fn main() {
     let walk = vb.walk(&glam::Vec3A::new(3.0, 2.0, 1.0));
     // println!("walk results: {:?}", walk);
 
-    let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
+    let mut cam = camera::Camera::default();
 
     let mut window = Window::new(
         "Test - ESC to exit",
-        WIDTH,
-        HEIGHT,
+        cam.fb.width,
+        cam.fb.height,
         WindowOptions {
             scale: minifb::Scale::X4,
             ..Default::default()
@@ -28,10 +29,6 @@ fn main() {
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        for i in buffer.iter_mut() {
-            *i = 0xff0000ff;
-        }
-
-        window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
+        cam.fb.update_window(&mut window);
     }
 }
