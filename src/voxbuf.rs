@@ -11,8 +11,48 @@ pub struct VoxBuf {
 }
 
 impl VoxBuf {
-    fn get_root(&self) -> Option<&Node> {
-        self.nodes.get(0)
+    pub const ROOT_NODE: NodeRef = 0;
+
+    pub fn new() -> Self {
+        Self {
+            nodes: vec![Node::new_empty()],
+        }
+    }
+
+    pub fn new_dummy() -> Self {
+        let root_node = Node {
+            occupancy: 0b00000001,
+            children: [1, 0, 0, 0, 0, 0, 0, 0],
+            data: Payload,
+        };
+
+        let leaf_node = Node::new_empty();
+
+        Self {
+            nodes: vec![root_node, leaf_node],
+        }
+    }
+
+    pub fn walk(&self, eye: &Vec3A) -> Vec<NodeRef> {
+        let mut nodes = Vec::<NodeRef>::new();
+        // TODO: calculate child origins with descent
+        let mut stack = vec![Self::ROOT_NODE];
+
+        while let Some(node_ref) = stack.pop() {
+            let node = self.nodes.get(node_ref as usize).unwrap();
+            let order = Node::sorting_order(eye);
+            for index in order.iter() {
+                let mask = Node::index_to_mask(*index);
+                if node.is_occupied(mask) {
+                    let child = node.get_child(*index);
+                    // TODO: push only leaf nodes to `nodes`
+                    nodes.push(child);
+                    stack.push(child);
+                }
+            }
+        }
+
+        nodes
     }
 }
 
@@ -27,6 +67,18 @@ pub struct Node {
 }
 
 impl Node {
+    pub fn new_empty() -> Self {
+        Self {
+            occupancy: 0,
+            children: [0; 8],
+            data: Payload,
+        }
+    }
+
+    pub fn get_child(&self, index: ChildIndex) -> NodeRef {
+        self.children[index as usize]
+    }
+
     pub fn index_to_mask(index: ChildIndex) -> ChildMask {
         if index < 8 {
             1 << index
@@ -54,26 +106,8 @@ impl Node {
         .into()
     }
 
+    /// TODO: find literature on this
     pub fn sorting_order(eye: &Vec3A) -> [ChildIndex; 8] {
-        /*if eye.x > 0.0 {
-            if eye.y > 0.0 {
-                if eye.z > 0.0 {
-                } else {
-                }
-            } else {
-                if eye.z > 0.0 {
-                } else {
-            }
-        } else {
-            if eye.y > 0.0 {
-                if eye.z > 0.0 {
-                } else {
-                }
-            } else {
-                if eye.z > 0.0 {
-                } else {
-            }
-        }*/
         [0, 1, 2, 3, 4, 5, 6, 7]
     }
 }

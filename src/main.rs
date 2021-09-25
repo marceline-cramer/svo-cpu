@@ -6,6 +6,9 @@ const WIDTH: usize = 640;
 const HEIGHT: usize = 480;
 
 fn main() {
+    let vb = voxbuf::VoxBuf::new_dummy();
+    println!("walk results: {:#?}", vb.walk(&glam::Vec3A::new(3.0, 2.0, 1.0)));
+
     let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
 
     let mut window = Window::new(
