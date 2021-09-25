@@ -8,10 +8,9 @@ const HEIGHT: usize = 180;
 
 fn main() {
     let vb = voxbuf::VoxBuf::from_binvox(include_bytes!("stanford_bunny.binvox"));
-    let walk = vb.walk(&glam::Vec3A::new(3.0, 2.0, 1.0));
-    // println!("walk results: {:?}", walk);
 
     let mut cam = camera::Camera::default();
+    vb.draw(&mut cam);
 
     let mut window = Window::new(
         "Test - ESC to exit",
@@ -30,5 +29,6 @@ fn main() {
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
         cam.fb.update_window(&mut window);
+        vb.draw(&mut cam);
     }
 }

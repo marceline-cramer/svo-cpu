@@ -1,3 +1,4 @@
+use super::camera::Camera;
 use glam::Vec3A;
 use std::io::{BufRead, Read};
 use std::time::Instant;
@@ -153,6 +154,12 @@ impl VoxBuf {
         println!("walked in {:?}", timer.elapsed());
 
         nodes
+    }
+
+    pub fn draw(&self, camera: &mut Camera) {
+        let timer = Instant::now();
+        let walked = self.walk(&camera.eye);
+        println!("done drawing in {:?}", timer.elapsed());
     }
 }
 

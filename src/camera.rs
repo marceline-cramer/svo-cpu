@@ -1,14 +1,16 @@
-use glam::Mat4;
+use glam::{Mat4, Vec3A};
 use minifb::Window;
 use std::cmp::min;
 
 pub struct Camera {
+    pub eye: Vec3A,
     pub fb: Framebuffer,
 }
 
 impl Default for Camera {
     fn default() -> Self {
         Self {
+            eye: Vec3A::new(3.0, 2.0, 1.0),
             fb: Framebuffer::default(),
         }
     }
