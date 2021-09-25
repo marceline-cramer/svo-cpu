@@ -40,14 +40,16 @@ impl VoxBuf {
 
         while let Some(node_ref) = stack.pop() {
             let node = self.nodes.get(node_ref as usize).unwrap();
-            let order = Node::sorting_order(eye);
-            for index in order.iter() {
-                let mask = Node::index_to_mask(*index);
-                if node.is_occupied(mask) {
-                    let child = node.get_child(*index);
-                    // TODO: push only leaf nodes to `nodes`
-                    nodes.push(child);
-                    stack.push(child);
+            if node.is_leaf() {
+                nodes.push(node_ref);
+            } else {
+                let order = Node::sorting_order(eye);
+                for index in order.iter() {
+                    let mask = Node::index_to_mask(*index);
+                    if node.is_occupied(mask) {
+                        let child = node.get_child(*index);
+                        stack.push(child);
+                    }
                 }
             }
         }
@@ -85,6 +87,10 @@ impl Node {
         } else {
             0
         }
+    }
+
+    pub fn is_leaf(&self) -> bool {
+        self.occupancy == 0
     }
 
     pub fn is_occupied(&self, mask: ChildMask) -> bool {
