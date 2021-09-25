@@ -65,15 +65,15 @@ impl VoxBuf {
         let capacity = dim * dim * dim;
         let mut data = vec![0 as u8; capacity];
 
-        let mut filled = 0;
+        let mut filled: usize = 0;
         let mut cur = 0;
         for pair in 0..rle_size {
             let value = rle_data[pair << 1];
-            let count = rle_data[pair << 1 | 1];
+            let count = rle_data[pair << 1 | 1] as usize;
             if value != 0 {
                 filled += count;
             }
-            if cur + count as usize > capacity {
+            if cur + count > capacity {
                 panic!("voxel data RLE overflow");
             }
             for _ in 0..count {
