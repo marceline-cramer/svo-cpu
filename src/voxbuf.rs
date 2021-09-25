@@ -1,5 +1,5 @@
 use glam::Vec3A;
-use std::io::BufRead;
+use std::io::{BufRead, Read};
 use std::time::Instant;
 
 pub type ChildIndex = u8;
@@ -60,7 +60,7 @@ impl VoxBuf {
         reader.read_line(&mut junk).unwrap(); // data
 
         let mut rle_data = Vec::<u8>::new();
-        let rle_size = reader.read_until(0, &mut rle_data).unwrap() / 2;
+        let rle_size = reader.read_to_end(&mut rle_data).unwrap() / 2;
 
         let capacity = dim * dim * dim;
         let mut data = vec![0 as u8; capacity];
@@ -70,15 +70,15 @@ impl VoxBuf {
         for pair in 0..rle_size {
             let value = rle_data[pair << 1];
             let count = rle_data[pair << 1 | 1];
+            if value != 0 {
+                filled += count;
+            }
+            if cur + count as usize > capacity {
+                panic!("voxel data RLE overflow");
+            }
             for _ in 0..count {
                 data[cur] = value;
-                if value != 0 {
-                    filled += 1;
-                }
                 cur += 1;
-                if cur > capacity {
-                    panic!("voxel data RLE overflow");
-                }
             }
         }
 
