@@ -54,8 +54,7 @@ impl Camera {
             let xy = self.frag_xy(frag);
             self.fb.test_point(xy)
         } else {
-            // self.test_point(&frag)
-            self.draw_point(&frag, 0)
+            self.test_point(&frag)
         }
     }
 
@@ -69,12 +68,7 @@ impl Camera {
         }
     }
 
-    pub fn draw_point(&mut self, center: &Vec3A, color: u32) -> bool {
-        const MAX_TEST: f32 = 0.1;
-        if color == 0 && center.z > MAX_TEST {
-            return true;
-        }
-
+    fn point_bounds(&self, center: &Vec3A) -> (usize, usize, usize, usize) {
         let w = self.fb.width as f32;
         let h = self.fb.height as f32;
         let screen_pos = glam::Vec2::new(center.x, center.y) * 0.5 + 0.5;
@@ -88,7 +82,22 @@ impl Camera {
         let t = (y - ry).floor() as usize;
         let b = (y + ry).ceil() as usize;
         let r = (x + rx).ceil() as usize;
-        self.fb.rect(color, l, t, r, b)
+        (l, t, r, b)
+    }
+
+    pub fn test_point(&self, center: &Vec3A) -> bool {
+        const MAX_TEST: f32 = 0.1;
+        if center.z > MAX_TEST {
+            return true;
+        }
+
+        let bounds = self.point_bounds(center);
+        self.fb.test_rect(bounds)
+    }
+
+    pub fn draw_point(&mut self, center: &Vec3A, color: u32) {
+        let bounds = self.point_bounds(center);
+        self.fb.draw_rect(color, bounds);
     }
 
     fn make_eye(step: f32) -> Vec3 {
@@ -151,20 +160,33 @@ impl Framebuffer {
         }
     }
 
-    fn rect(&mut self, c: u32, l: usize, t: usize, r: usize, b: usize) -> bool {
-        // let r = min(r, self.width - 1);
-        // let b = min(b, self.height - 1);
+    fn draw_rect(&mut self, c: u32, b: (usize, usize, usize, usize)) {
+        let (l, t, r, b) = b;
+        let xt = t * self.width;
+        let mut xl = xt + l;
+        let mut xr = xt + r;
+        for _ in t..b {
+            let row = &mut self.data[xl..xr];
+            for pixel in row.iter_mut() {
+                let old = *pixel;
+                // TODO: blending
+                *pixel = old | c;
+            }
+            xl += self.width;
+            xr += self.width;
+        }
+    }
+
+    fn test_rect(&self, b: (usize, usize, usize, usize)) -> bool {
+        let (l, t, r, b) = b;
         let xt = t * self.width;
         let mut xl = xt + l;
         let mut xr = xt + r;
         let mut wrote = false;
         for _ in t..b {
-            for pixel in self.data[xl..xr].iter_mut() {
-                let old = *pixel;
-                wrote = wrote | (old == 0);
-                *pixel = old | c;
-                // *pixel += 8;
-                // *pixel = c;
+            let row = &self.data[xl..xr];
+            for pixel in row.iter() {
+                wrote = wrote | (*pixel == 0)
             }
             xl += self.width;
             xr += self.width;
