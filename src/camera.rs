@@ -26,6 +26,10 @@ impl Default for Camera {
 
 impl Camera {
     pub fn draw_voxel(&mut self, center: &Vec3A, color: u32) {
+        if color == 0x00 {
+            return;
+        }
+
         let vertex = center.extend(1.0);
         let frag = self.vp * vertex;
         let frag: Vec3A = (frag / frag.w).into();
