@@ -17,10 +17,10 @@ impl Default for Camera {
 }
 
 impl Camera {
-    pub fn draw_voxel(&mut self, center: &Vec3A) {
+    pub fn draw_voxel(&mut self, center: &Vec3A, color: u32) {
         let x = ((center.y * 0.5 + 0.5) * (self.fb.width as f32)).round() as usize;
         let y = ((center.z * 0.5 + 0.5) * (self.fb.height as f32)).round() as usize;
-        self.fb.data[y * self.fb.width + x] = 0xff0000ff;
+        self.fb.data[y * self.fb.width + x] = color;
     }
 }
 

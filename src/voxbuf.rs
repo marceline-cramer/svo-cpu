@@ -1,5 +1,5 @@
 use super::camera::Camera;
-use glam::{Vec3A, Vec4};
+use glam::Vec3A;
 use std::io::{BufRead, Read};
 use std::time::Instant;
 
@@ -26,7 +26,7 @@ impl VoxBuf {
         let root_node = Node {
             occupancy: 0b00000001,
             children: [1, 0, 0, 0, 0, 0, 0, 0],
-            data: Payload,
+            data: Payload::default(),
         };
 
         let leaf_node = Node::default();
@@ -96,6 +96,8 @@ impl VoxBuf {
 
         stack.push_front((0, 0, 0, 0, 7));
 
+        let mut placed_voxels = 0;
+
         while let Some(iter) = stack.pop_back() {
             let parent = iter.3 as usize;
             let lod = iter.4;
@@ -122,7 +124,12 @@ impl VoxBuf {
                     if data[index] != 0 {
                         node.occupancy |= Node::index_to_mask(i as ChildMask);
                         node.children[i] = (cursor + i) as NodeRef;
+                        placed_voxels += 1;
                     }
+                }
+
+                if node.occupancy == 0x00 {
+                    node.data.color = 0xff0000ff;
                 }
             } else {
                 node.occupancy = 0xff;
@@ -138,6 +145,7 @@ impl VoxBuf {
         println!("converted in {:?}", timer.elapsed());
         println!("{} nodes", capacity);
         println!("{} voxels", filled);
+        println!("{} voxels were treed", placed_voxels);
 
         Self { nodes }
     }
@@ -174,15 +182,26 @@ impl VoxBuf {
     pub fn draw(&self, camera: &mut Camera) {
         let timer = Instant::now();
         let walked = self.walk(&camera.eye);
-        for (_node_ref, voxel) in walked.iter() {
-            camera.draw_voxel(&voxel);
+        for (node_ref, voxel) in walked.iter() {
+            let node = self.nodes.get(*node_ref as usize).unwrap();
+            camera.draw_voxel(&voxel, node.data.color);
         }
         println!("done drawing in {:?}", timer.elapsed());
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct Payload;
+pub struct Payload {
+    color: u32,
+}
+
+impl Default for Payload {
+    fn default() -> Self {
+        Self {
+            color: 0xff0000ff,
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Node {
@@ -196,7 +215,7 @@ impl Default for Node {
         Self {
             occupancy: 0,
             children: [0; 8],
-            data: Payload,
+            data: Payload::default(),
         }
     }
 }
