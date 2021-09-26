@@ -275,7 +275,7 @@ impl VoxBuf {
                 leaf_num += 1;
                 camera.draw_voxel(&voxel, node.data.color);
             } else {
-                if camera.draw_voxel(&voxel, 0) {
+                if camera.test_voxel(&voxel) {
                     let order = Node::sorting_order(&eye);
                     node.for_kids_ordered(order, |index, child| {
                         let origin = stem + Node::index_offset(index, offset);

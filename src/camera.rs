@@ -28,25 +28,44 @@ impl Default for Camera {
 }
 
 impl Camera {
-    pub fn draw_voxel(&mut self, center: &Vec4, color: u32) -> bool {
+    fn project_voxel(&self, center: &Vec4) -> Vec3A {
         let mut vertex = center.clone();
         vertex.w = 1.0;
         let mut frag = self.vp * vertex;
         frag.z = -center.w;
-        let frag: Vec3A = (frag / frag.w).into();
-        // println!("frag: {:#?}", frag);
+        (frag / frag.w).into()
+    }
+
+    fn frag_xy(&self, frag: Vec3A) -> (usize, usize) {
+        let w = self.fb.width as f32;
+        let h = self.fb.height as f32;
+        let screen_pos = glam::Vec2::new(frag.x, frag.y) * 0.5 + 0.5;
+        let screen_scale = glam::Vec2::new(w, h);
+        let screen_pos = screen_pos * screen_scale;
+        let screen_pos = screen_pos.floor();
+        let x = screen_pos.x as usize;
+        let y = screen_pos.y as usize;
+        (x, y)
+    }
+
+    pub fn test_voxel(&mut self, center: &Vec4) -> bool {
+        let frag = self.project_voxel(center);
         if frag.z < self.min_point {
-            let w = self.fb.width as f32;
-            let h = self.fb.height as f32;
-            let screen_pos = glam::Vec2::new(frag.x, frag.y) * 0.5 + 0.5;
-            let screen_scale = glam::Vec2::new(w, h);
-            let screen_pos = screen_pos * screen_scale;
-            let screen_pos = screen_pos.floor();
-            let x = screen_pos.x as usize;
-            let y = screen_pos.y as usize;
-            self.fb.point(color, x, y)
+            let xy = self.frag_xy(frag);
+            self.fb.test_point(xy)
         } else {
-            self.draw_point(&frag, color)
+            // self.test_point(&frag)
+            self.draw_point(&frag, 0)
+        }
+    }
+
+    pub fn draw_voxel(&mut self, center: &Vec4, color: u32) {
+        let frag = self.project_voxel(center);
+        if frag.z < self.min_point {
+            let xy = self.frag_xy(frag);
+            self.fb.draw_point(xy, color);
+        } else {
+            self.draw_point(&frag, color);
         }
     }
 
@@ -118,12 +137,15 @@ impl Default for Framebuffer {
 }
 
 impl Framebuffer {
-    fn point(&mut self, c: u32, x: usize, y: usize) -> bool {
-        let offset = y * self.width + x;
+    fn draw_point(&mut self, xy: (usize, usize), c: u32) {
+        let offset = xy.1 * self.width + xy.0;
+        self.data[offset] = c;
+    }
+
+    fn test_point(&self, xy: (usize, usize)) -> bool {
+        let offset = xy.1 * self.width + xy.0;
         if offset < self.data.len() {
-            let old_c = self.data[offset];
-            self.data[offset] = old_c | c;
-            old_c == 0
+            self.data[offset] == 0
         } else {
             false
         }
