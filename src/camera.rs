@@ -42,8 +42,8 @@ impl Camera {
     }
 
     fn make_eye(step: f32) -> Vec3 {
-        const R: f32 = 3.0;
-        const H: f32 = 2.0;
+        const R: f32 = 2.0;
+        const H: f32 = 1.0;
         let angle = step;
         Vec3::new(angle.cos() * R, H, angle.sin() * R)
     }
@@ -53,10 +53,10 @@ impl Camera {
         const NEAR: f32 = 0.1;
         const FAR: f32 = 100.0;
         let eye = Self::make_eye(step);
-        let center = Vec3::new(0.0, 0.0, 0.0);
+        let center = Vec3::new(0.0, -0.25, 0.0);
         let up = Vec3::new(0.0, 1.0, 0.0);
         let v = Mat4::look_at_lh(eye, center, up);
-        let aspect = (height as f32) / (width as f32);
+        let aspect = (width as f32) / (height as f32);
         let p = Mat4::perspective_rh(FOV.to_radians(), aspect, NEAR, FAR);
         p * v
     }
