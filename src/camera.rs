@@ -80,11 +80,11 @@ impl Camera {
     }
 
     fn make_vp(step: f32, width: usize, height: usize) -> Mat4 {
-        const FOV: f32 = 75.0;
+        const FOV: f32 = 90.0;
         const NEAR: f32 = 0.1;
         const FAR: f32 = 100.0;
         let eye = Self::make_eye(step);
-        let center = Vec3::new(0.0, -0.15, 0.0);
+        let center = Vec3::new(0.0, -0.25, 0.0);
         let up = Vec3::new(0.0, 1.0, 0.0);
         let v = Mat4::look_at_lh(eye, center, up);
         let aspect = (width as f32) / (height as f32);
@@ -106,8 +106,8 @@ pub struct Framebuffer {
 
 impl Default for Framebuffer {
     fn default() -> Self {
-        let width = 1600;
-        let height = 900;
+        let width = 1280;
+        let height = 720;
         let data = vec![0; width * height];
         Self {
             width,
@@ -120,48 +120,34 @@ impl Default for Framebuffer {
 impl Framebuffer {
     fn point(&mut self, c: u32, x: usize, y: usize) -> bool {
         let offset = y * self.width + x;
-        /*if offset < self.data.len() {
+        if offset < self.data.len() {
             let old_c = self.data[offset];
             self.data[offset] = old_c | c;
             old_c == 0
         } else {
             false
-        }*/
-        self.data[offset] = c;
-        true
+        }
     }
 
     fn rect(&mut self, c: u32, l: usize, t: usize, r: usize, b: usize) -> bool {
-        if c == 0 {
-            return true;
-        }
-
-        if r > self.width || b > self.height {
-            return false;
-        }
-
+        // let r = min(r, self.width - 1);
+        // let b = min(b, self.height - 1);
         let xt = t * self.width;
-        let mut xr = xt + r;
-        if xr >= self.data.len() {
-            return false;
-        }
         let mut xl = xt + l;
-
-        // let mut wrote = false;
+        let mut xr = xt + r;
+        let mut wrote = false;
         for _ in t..b {
-            self.data[xl..xr].fill(c);
-            /*for pixel in self.data[xl..xr].iter_mut() {
+            for pixel in self.data[xl..xr].iter_mut() {
                 let old = *pixel;
                 wrote = wrote | (old == 0);
                 *pixel = old | c;
                 // *pixel += 8;
                 // *pixel = c;
-            }*/
+            }
             xl += self.width;
             xr += self.width;
         }
-        // wrote
-        true
+        wrote
     }
 
     pub fn clear(&mut self) {
