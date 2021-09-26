@@ -25,24 +25,18 @@ impl Default for Camera {
 }
 
 impl Camera {
-    pub fn draw_voxel(&mut self, center: &Vec3A, color: u32) {
-        if color == 0x00 {
-            return;
-        }
-
+    pub fn draw_voxel(&mut self, center: &Vec3A, color: u32) -> bool {
         let vertex = center.extend(1.0);
         let frag = self.vp * vertex;
         let frag: Vec3A = (frag / frag.w).into();
         // println!("frag: {:#?}", frag);
-        if frag.x > -1.0 && frag.x < 1.0 && frag.y > -1.0 && frag.y < 1.0 {
-            self.draw_point(&frag, color);
-        }
+        self.draw_point(&frag, color)
     }
 
-    pub fn draw_point(&mut self, center: &Vec3A, color: u32) {
+    pub fn draw_point(&mut self, center: &Vec3A, color: u32) -> bool {
         let x = ((center.x * 0.5 + 0.5) * (self.fb.width as f32)).round() as usize;
         let y = ((center.y * 0.5 + 0.5) * (self.fb.height as f32)).round() as usize;
-        self.fb.point(color, x, y);
+        self.fb.point(color, x, y)
     }
 
     fn make_eye(step: f32) -> Vec3 {
@@ -91,10 +85,14 @@ impl Default for Framebuffer {
 }
 
 impl Framebuffer {
-    fn point(&mut self, c: u32, x: usize, y: usize) {
+    fn point(&mut self, c: u32, x: usize, y: usize) -> bool {
         let offset = y * self.width + x;
         if offset < self.data.len() {
-            self.data[y * self.width + x] = c;
+            let old_c = self.data[offset];
+            self.data[offset] = c;
+            old_c == 0
+        } else {
+            false
         }
     }
 
