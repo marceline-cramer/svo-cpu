@@ -7,6 +7,7 @@ pub struct Camera {
     pub eye: Vec3A,
     pub fb: Framebuffer,
     start: Instant,
+    min_point: f32,
     vp: Mat4,
 }
 
@@ -14,11 +15,13 @@ impl Default for Camera {
     fn default() -> Self {
         let eye = Self::make_eye(0.0);
         let fb = Framebuffer::default();
+        let min_point = 0.5 / min(fb.width, fb.height) as f32;
         let vp = Self::make_vp(0.0, fb.width, fb.height);
         Self {
             eye: eye.into(),
             fb,
             start: Instant::now(),
+            min_point,
             vp,
         }
     }
@@ -32,15 +35,22 @@ impl Camera {
         frag.z = -center.w;
         let frag: Vec3A = (frag / frag.w).into();
         // println!("frag: {:#?}", frag);
-        self.draw_point(&frag, color)
+        if frag.z < self.min_point {
+            let w = self.fb.width as f32;
+            let h = self.fb.height as f32;
+            let screen_pos = glam::Vec2::new(frag.x, frag.y) * 0.5 + 0.5;
+            let screen_scale = glam::Vec2::new(w, h);
+            let screen_pos = screen_pos * screen_scale;
+            let screen_pos = screen_pos.floor();
+            let x = screen_pos.x as usize;
+            let y = screen_pos.y as usize;
+            self.fb.point(color, x, y)
+        } else {
+            self.draw_point(&frag, color)
+        }
     }
 
     pub fn draw_point(&mut self, center: &Vec3A, color: u32) -> bool {
-        const MIN_FILL: f32 = 0.0007;
-        if center.z < MIN_FILL {
-            return false;
-        }
-
         const MAX_TEST: f32 = 0.1;
         if color == 0 && center.z > MAX_TEST {
             return true;
@@ -112,7 +122,7 @@ impl Framebuffer {
         let offset = y * self.width + x;
         if offset < self.data.len() {
             let old_c = self.data[offset];
-            self.data[offset] = c;
+            self.data[offset] = old_c | c;
             old_c == 0
         } else {
             false
