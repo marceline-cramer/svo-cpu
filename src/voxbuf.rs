@@ -153,10 +153,12 @@ impl VoxBuf {
     pub fn walk(&self, eye: &Vec3A) -> Vec<(NodeRef, Vec3A)> {
         let timer = Instant::now();
 
+        let mut walked_num = 0;
         let mut nodes = Vec::<(NodeRef, Vec3A)>::new();
         let mut stack = vec![(Self::ROOT_NODE, Vec3A::new(0.0, 0.0, 0.0), 0)];
 
         while let Some((node_ref, stem, depth)) = stack.pop() {
+            walked_num += 1;
             let node = self.nodes.get(node_ref as usize).unwrap();
             if node.is_leaf() {
                 nodes.push((node_ref, stem.into()));
@@ -174,20 +176,20 @@ impl VoxBuf {
             }
         }
 
-        println!("walked in {:?}", timer.elapsed());
+        println!("walked {} nodes in {:?}", walked_num, timer.elapsed());
 
         nodes
     }
 
     pub fn draw(&self, camera: &mut Camera) {
-        let timer = Instant::now();
         let walked = self.walk(&camera.eye);
-        // println!("walked: {:#?}", walked);
+        let timer = Instant::now();
+        let leaf_num = walked.len();
         for (node_ref, voxel) in walked.iter() {
             let node = self.nodes.get(*node_ref as usize).unwrap();
             camera.draw_voxel(&voxel, node.data.color);
         }
-        println!("done drawing in {:?}", timer.elapsed());
+        println!("done drawing {} leaves in {:?}", leaf_num, timer.elapsed());
     }
 }
 
