@@ -261,6 +261,45 @@ impl VoxBuf {
         nodes
     }
 
+    pub fn draw_occluded(&self, camera: &mut Camera) {
+        let timer = Instant::now();
+
+        let eye = camera.eye;
+        let mut leaf_num = 0;
+        let mut walked_num = 0;
+        let mut stack = vec![(Self::ROOT_NODE, Vec3A::new(0.0, 0.0, 0.0), 0)];
+
+        while let Some((node_ref, stem, depth)) = stack.pop() {
+            walked_num += 1;
+            let node = self.nodes.get(node_ref as usize).unwrap();
+            if node.is_leaf() {
+                leaf_num += 1;
+                camera.draw_voxel(&stem, node.data.color);
+            } else {
+                if camera.draw_voxel(&stem, 0) {
+                    let order = Node::sorting_order(&eye);
+                    let offset = 1.0 / ((2 << depth) as f32);
+                    for index in order.iter() {
+                        let mask = Node::index_to_mask(*index);
+                        if node.is_occupied(mask) {
+                            let child = node.get_child(*index);
+                            let origin = stem + Node::index_offset(*index, offset);
+                            stack.push((child, origin, depth + 1));
+                        }
+                    }
+                }
+            }
+        }
+
+        println!(
+            "done drawing (w/ occlusion) {} leaves in {:?}",
+            leaf_num,
+            timer.elapsed()
+        );
+
+        println!("walked over {} nodes", walked_num);
+    }
+
     pub fn draw(&self, camera: &mut Camera) {
         let walked = self.walk(&camera.eye);
         let timer = Instant::now();
