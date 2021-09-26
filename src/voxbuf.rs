@@ -182,6 +182,7 @@ impl VoxBuf {
     pub fn draw(&self, camera: &mut Camera) {
         let timer = Instant::now();
         let walked = self.walk(&camera.eye);
+        // println!("walked: {:#?}", walked);
         for (node_ref, voxel) in walked.iter() {
             let node = self.nodes.get(*node_ref as usize).unwrap();
             camera.draw_voxel(&voxel, node.data.color);

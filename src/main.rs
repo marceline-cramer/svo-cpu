@@ -8,6 +8,7 @@ const HEIGHT: usize = 180;
 
 fn main() {
     let vb = voxbuf::VoxBuf::from_binvox(include_bytes!("stanford_bunny.binvox"));
+    // let vb = voxbuf::VoxBuf::new_dummy();
 
     let mut cam = camera::Camera::default();
     vb.draw(&mut cam);
@@ -25,7 +26,9 @@ fn main() {
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        cam.fb.update_window(&mut window);
+        cam.update();
+        cam.fb.clear();
         vb.draw(&mut cam);
+        cam.fb.update_window(&mut window);
     }
 }
