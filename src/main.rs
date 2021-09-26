@@ -16,10 +16,7 @@ fn main() {
         "Test - ESC to exit",
         cam.fb.width,
         cam.fb.height,
-        WindowOptions {
-            scale: minifb::Scale::X4,
-            ..Default::default()
-        },
+        WindowOptions::default(),
     )
     .unwrap_or_else(|e| {
         panic!("{}", e);

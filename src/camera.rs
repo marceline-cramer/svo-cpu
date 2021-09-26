@@ -18,7 +18,7 @@ impl Default for Camera {
 
 impl Camera {
     pub fn draw_voxel(&mut self, center: &Vec3A) {
-        let x = ((center.x * 0.5 + 0.5) * (self.fb.width as f32)).round() as usize;
+        let x = ((center.y * 0.5 + 0.5) * (self.fb.width as f32)).round() as usize;
         let y = ((center.z * 0.5 + 0.5) * (self.fb.height as f32)).round() as usize;
         self.fb.data[y * self.fb.width + x] = 0xff0000ff;
     }
@@ -32,8 +32,8 @@ pub struct Framebuffer {
 
 impl Default for Framebuffer {
     fn default() -> Self {
-        let width = 240;
-        let height = 180;
+        let width = 1280;
+        let height = 720;
         let data = vec![0; width * height];
         Self {
             width,

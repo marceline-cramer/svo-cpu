@@ -97,8 +97,6 @@ impl VoxBuf {
         stack.push_front((0, 0, 0, 0, 7));
 
         while let Some(iter) = stack.pop_back() {
-            println!("{:#?}", iter);
-
             let parent = iter.3 as usize;
             let lod = iter.4;
 
