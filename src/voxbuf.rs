@@ -1,5 +1,5 @@
 use super::camera::Camera;
-use glam::Vec3A;
+use glam::{Vec3A, Vec4};
 use std::io::{BufRead, Read};
 use std::time::Instant;
 
@@ -152,11 +152,11 @@ impl VoxBuf {
 
         let mut vb = Self { nodes };
         let dummy_eye = Vec3A::new(3.0, 2.0, 1.0);
-        vb.walk(&dummy_eye);
+        vb.walk_all(&dummy_eye);
         vb.cull_unfilled();
-        vb.walk(&dummy_eye);
+        vb.walk_all(&dummy_eye);
         vb.breadth_sort_nodes();
-        vb.walk(&dummy_eye);
+        vb.walk_all(&dummy_eye);
         vb
     }
 
@@ -231,39 +231,14 @@ impl VoxBuf {
         self.nodes = nodes;
     }
 
-    pub fn walk(&self, eye: &Vec3A) -> Vec<(Payload, Vec3A)> {
+    pub fn walk<F>(&self, eye: &Vec3A, mut on_node: F)
+    where
+        F: FnMut(bool, &Payload, Vec4) -> bool,
+    {
         let timer = Instant::now();
 
         let mut walked_num = 0;
-        let mut nodes = Vec::<(Payload, Vec3A)>::new();
-        let mut stack = vec![(Self::ROOT_NODE, Vec3A::new(0.0, 0.0, 0.0), 0)];
-
-        while let Some((node_ref, stem, depth)) = stack.pop() {
-            walked_num += 1;
-            let node = self.nodes.get(node_ref as usize).unwrap();
-            if node.is_leaf() {
-                nodes.push((node.data, stem.into()));
-            } else {
-                let order = Node::sorting_order(eye);
-                let offset = 1.0 / ((2 << depth) as f32);
-                node.for_kids_ordered(order, |index, child| {
-                    let origin = stem + Node::index_offset(index, offset);
-                    stack.push((*child, origin, depth + 1));
-                });
-            }
-        }
-
-        println!("walked {} nodes in {:?}", walked_num, timer.elapsed());
-
-        nodes
-    }
-
-    pub fn draw(&self, camera: &mut Camera) {
-        let timer = Instant::now();
-
-        let eye = camera.eye;
         let mut leaf_num = 0;
-        let mut walked_num = 0;
         let mut stack = vec![(Self::ROOT_NODE, Vec3A::new(0.0, 0.0, 0.0), 0)];
 
         while let Some((node_ref, stem, depth)) = stack.pop() {
@@ -273,9 +248,9 @@ impl VoxBuf {
             let voxel = stem.extend(offset);
             if node.is_leaf() {
                 leaf_num += 1;
-                camera.draw_voxel(&voxel, node.data.color);
+                on_node(true, &node.data, voxel);
             } else {
-                if camera.test_voxel(&voxel) {
+                if on_node(false, &node.data, voxel) {
                     let order = Node::sorting_order(&eye);
                     node.for_kids_ordered(order, |index, child| {
                         let origin = stem + Node::index_offset(index, offset);
@@ -286,12 +261,37 @@ impl VoxBuf {
         }
 
         println!(
-            "done drawing (w/ occlusion) {} leaves in {:?}",
+            "walked {} nodes ({} leaves) in {:?}",
+            walked_num,
             leaf_num,
             timer.elapsed()
         );
+    }
 
-        println!("walked over {} nodes", walked_num);
+    pub fn walk_all(&self, eye: &Vec3A) -> Vec<(Payload, Vec4)> {
+        let mut nodes = Vec::<(Payload, Vec4)>::new();
+        self.walk(eye, |is_leaf, data, voxel| {
+            if is_leaf {
+                nodes.push((*data, voxel));
+            }
+            true
+        });
+        nodes
+    }
+
+    pub fn draw(&self, camera: &mut Camera) {
+        let timer = Instant::now();
+
+        self.walk(&camera.eye.clone(), |is_leaf, data, voxel| {
+            if is_leaf {
+                camera.draw_voxel(&voxel, data.color);
+                true
+            } else {
+                camera.test_voxel(&voxel)
+            }
+        });
+
+        println!("done drawing in {:?}", timer.elapsed());
     }
 }
 
