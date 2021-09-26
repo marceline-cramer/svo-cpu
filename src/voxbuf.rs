@@ -148,7 +148,85 @@ impl VoxBuf {
         println!("{} voxels", filled);
         println!("{} voxels were treed", placed_voxels);
 
-        Self { nodes }
+        let mut vb = Self { nodes };
+        let dummy_eye = Vec3A::new(3.0, 2.0, 1.0);
+        vb.walk(&dummy_eye);
+        vb.cull_unfilled();
+        // vb.walk(&dummy_eye);
+        // vb.sort_nodes();
+        vb.walk(&dummy_eye);
+        vb
+    }
+
+    pub fn cull_unfilled(&mut self) {
+        let timer = Instant::now();
+        self.cull_unfilled_children(Self::ROOT_NODE);
+        println!("culled unfilled branches in {:?}", timer.elapsed());
+    }
+
+    fn cull_unfilled_children(&mut self, parent_ref: NodeRef) -> bool {
+        let mut parent = *self.nodes.get(parent_ref as usize).unwrap();
+
+        if parent.is_leaf() {
+            if parent.data.color == 0 {
+                return false;
+            }
+        } else {
+            for index in 0..8 {
+                let mask = Node::index_to_mask(index);
+                if parent.is_occupied(mask) {
+                    let child_index = parent.children[index as usize];
+                    if !self.cull_unfilled_children(child_index) {
+                        let mask = !Node::index_to_mask(index);
+                        parent.occupancy &= mask;
+                    }
+                }
+            }
+
+            if parent.is_leaf() {
+                return false;
+            }
+
+            self.nodes[parent_ref as usize] = parent;
+        }
+
+        true
+    }
+
+    /// depth-sorts nodes
+    /// also removes unused nodes
+    pub fn sort_nodes(&mut self) {
+        let timer = Instant::now();
+
+        let mut nodes = Vec::<Node>::new();
+        let mut cursor = 1;
+
+        let mut stack = vec![Self::ROOT_NODE];
+        while let Some(node_ref) = stack.pop() {
+            let mut node = self.nodes.get(node_ref as usize).unwrap().clone();
+
+            if !node.is_leaf() {
+                for index in 0..8 {
+                    let mask = Node::index_to_mask(index);
+                    if node.is_occupied(mask) {
+                        stack.push(node.children[index as usize]);
+                        node.children[index as usize] = cursor;
+                        cursor += 1;
+                    }
+                }
+            }
+
+            nodes.push(node);
+        }
+
+        println!(
+            "depth-sorted {} nodes to {} nodes in {:?}",
+            self.nodes.len(),
+            nodes.len(),
+            timer.elapsed()
+        );
+
+        self.nodes = nodes;
     }
 
     pub fn walk(&self, eye: &Vec3A) -> Vec<(Payload, Vec3A)> {
