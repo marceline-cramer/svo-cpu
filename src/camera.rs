@@ -154,7 +154,45 @@ impl Framebuffer {
         self.data.fill(0);
     }
 
-    pub fn update_window(&self, window: &mut Window) {
+    pub fn update_window(&mut self, window: &mut Window) {
+        /*for row_index in 1..self.height {
+            let start = row_index * self.width;
+            let end = start + self.width;
+            let mut all_empty = true;
+            for index in start..end {
+                let pixel = self.data[index];
+                if pixel == 0 {
+                    self.data[index] = self.data[index - self.width];
+                } else {
+                    all_empty = false;
+                }
+            }
+
+            if all_empty {
+                break;
+            }
+        }
+
+        for row in self.data.chunks_mut(self.width) {
+            let mut x = self.width;
+            while x > 0 {
+                x -= 1;
+                if row[x] != 0 {
+                    break;
+                }
+            }
+
+            let mut old: u32 = 0;
+            for pixel in row[0..x].iter_mut() {
+                let new = *pixel;
+                if new == 0 {
+                    *pixel = old;
+                } else {
+                    old = new;
+                }
+            }
+        }*/
+
         window
             .update_with_buffer(&self.data, self.width, self.height)
             .unwrap();
