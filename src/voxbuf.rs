@@ -217,6 +217,10 @@ impl VoxBuf {
                 }
             }
 
+            if node.data.color != 0 {
+                node.data.color = node_ref;
+            }
+
             nodes.push(node);
         }
 
@@ -278,7 +282,7 @@ impl VoxBuf {
                 leaf_num += 1;
                 camera.draw_voxel(&voxel, node.data.color);
             } else {
-//                if camera.draw_voxel(&voxel, 0) {
+                if camera.draw_voxel(&voxel, 0) {
                     let order = Node::sorting_order(&eye);
                     for index in order.iter() {
                         let mask = Node::index_to_mask(*index);
@@ -288,7 +292,7 @@ impl VoxBuf {
                             stack.push((child, origin, depth + 1));
                         }
                     }
-//                }
+                }
             }
         }
 

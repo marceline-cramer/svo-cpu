@@ -36,6 +36,16 @@ impl Camera {
     }
 
     pub fn draw_point(&mut self, center: &Vec3A, color: u32) -> bool {
+        const MIN_FILL: f32 = 0.0007;
+        if center.z < MIN_FILL {
+            return false;
+        }
+
+        const MAX_TEST: f32 = 0.1;
+        if color == 0 && center.z > MAX_TEST {
+            return true;
+        }
+
         let w = self.fb.width as f32;
         let h = self.fb.height as f32;
         let screen_pos = glam::Vec2::new(center.x, center.y) * 0.5 + 0.5;
@@ -45,14 +55,11 @@ impl Camera {
 
         let [x, y, rx, ry] = screen_pos.to_array();
 
-        let l = (x - rx).round() as usize;
-        let t = (y - rx).round() as usize;
-        let b = (y + ry).round() as usize;
-        let r = (x + ry).round() as usize;
-        // self.fb.point(color, x, y)
-        let color = 0x7f0000 | ((rx.fract() * 255.0) as u32) << 8 | (ry.fract() * 255.0) as u32;
-        self.fb.rect(color, l, t, r, b);
-        true
+        let l = (x - rx).floor() as usize;
+        let t = (y - ry).floor() as usize;
+        let b = (y + ry).ceil() as usize;
+        let r = (x + rx).ceil() as usize;
+        self.fb.rect(color, l, t, r, b)
     }
 
     fn make_eye(step: f32) -> Vec3 {
@@ -112,17 +119,25 @@ impl Framebuffer {
         }
     }
 
-    fn rect(&mut self, c: u32, l: usize, t: usize, r: usize, b: usize) {
-        let r = min(r, self.width - 1);
-        let b = min(b, self.height - 1);
+    fn rect(&mut self, c: u32, l: usize, t: usize, r: usize, b: usize) -> bool {
+        // let r = min(r, self.width - 1);
+        // let b = min(b, self.height - 1);
         let xt = t * self.width;
         let mut xl = xt + l;
         let mut xr = xt + r;
-        for row in t..b {
-            self.data[xl..xr].fill(c);
+        let mut wrote = false;
+        for _ in t..b {
+            for pixel in self.data[xl..xr].iter_mut() {
+                let old = *pixel;
+                wrote = wrote | (old == 0);
+                *pixel = old | c;
+                // *pixel += 8;
+                // *pixel = c;
+            }
             xl += self.width;
             xr += self.width;
         }
+        wrote
     }
 
     pub fn clear(&mut self) {
