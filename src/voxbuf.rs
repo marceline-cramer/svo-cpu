@@ -5,6 +5,7 @@ use std::time::Instant;
 
 pub type ChildIndex = u8;
 pub type ChildMask = u8;
+pub type ChildOrder = u8;
 pub type NodeRef = u32;
 
 pub const INVALID_NODE: NodeRef = NodeRef::MAX;
@@ -134,12 +135,13 @@ impl VoxBuf {
             } else {
                 node.data.color = 0xff00ffff;
                 node.occupancy = 0xff;
-                for i in 0..8 {
-                    let child = (cursor + i) as NodeRef;
-                    let offset = offsets[i];
-                    node.children[i] = child;
-                    stack.push_back((offset.0, offset.1, offset.2, child, lod - 1));
-                }
+                node.for_kids_all_mut(|index, _mask, child| {
+                    let index = index as usize;
+                    let child_ref = (cursor + index) as NodeRef;
+                    let offset = offsets[index];
+                    *child = child_ref;
+                    stack.push_back((offset.0, offset.1, offset.2, child_ref, lod - 1));
+                });
             }
         }
 
@@ -206,16 +208,11 @@ impl VoxBuf {
         while let Some(node_ref) = queue.pop_back() {
             let mut node = self.nodes.get(node_ref as usize).unwrap().clone();
 
-            if !node.is_leaf() {
-                for index in 0..8 {
-                    let mask = Node::index_to_mask(index);
-                    if node.is_occupied(mask) {
-                        queue.push_front(node.children[index as usize]);
-                        node.children[index as usize] = cursor as NodeRef;
-                        cursor += 1;
-                    }
-                }
-            }
+            node.for_kids_mut(|_index, child| {
+                queue.push_front(*child);
+                *child = cursor as NodeRef;
+                cursor += 1;
+            });
 
             if node.data.color != 0 {
                 node.data.color = node_ref;
@@ -249,14 +246,10 @@ impl VoxBuf {
             } else {
                 let order = Node::sorting_order(eye);
                 let offset = 1.0 / ((2 << depth) as f32);
-                for index in order.iter() {
-                    let mask = Node::index_to_mask(*index);
-                    if node.is_occupied(mask) {
-                        let child = node.get_child(*index);
-                        let origin = stem + Node::index_offset(*index, offset);
-                        stack.push((child, origin, depth + 1));
-                    }
-                }
+                node.for_kids_ordered(order, |index, child| {
+                    let origin = stem + Node::index_offset(index, offset);
+                    stack.push((*child, origin, depth + 1));
+                });
             }
         }
 
@@ -284,14 +277,10 @@ impl VoxBuf {
             } else {
                 if camera.draw_voxel(&voxel, 0) {
                     let order = Node::sorting_order(&eye);
-                    for index in order.iter() {
-                        let mask = Node::index_to_mask(*index);
-                        if node.is_occupied(mask) {
-                            let child = node.get_child(*index);
-                            let origin = stem + Node::index_offset(*index, offset);
-                            stack.push((child, origin, depth + 1));
-                        }
-                    }
+                    node.for_kids_ordered(order, |index, child| {
+                        let origin = stem + Node::index_offset(index, offset);
+                        stack.push((*child, origin, depth + 1));
+                    });
                 }
             }
         }
@@ -334,6 +323,17 @@ impl Default for Node {
     }
 }
 
+const HILBERT_ORDER: [(ChildIndex, ChildMask); 8] = [
+    (0, 0x01),
+    (1, 0x02),
+    (3, 0x08),
+    (2, 0x04),
+    (6, 0x40),
+    (7, 0x80),
+    (5, 0x20),
+    (4, 0x10),
+];
+
 impl Node {
     pub fn get_child(&self, index: ChildIndex) -> NodeRef {
         self.children[index as usize]
@@ -353,6 +353,59 @@ impl Node {
 
     pub fn is_occupied(&self, mask: ChildMask) -> bool {
         (self.occupancy & mask) != 0
+    }
+
+    pub fn for_kids_all<F>(&self, mut f: F)
+    where
+        F: FnMut(ChildIndex, ChildMask),
+    {
+        for (index, mask) in HILBERT_ORDER.iter() {
+            f(*index, *mask);
+        }
+    }
+
+    pub fn for_kids_all_mut<F>(&mut self, mut f: F)
+    where
+        F: FnMut(ChildIndex, ChildMask, &mut NodeRef),
+    {
+        for (index, mask) in HILBERT_ORDER.iter() {
+            f(*index, *mask, &mut self.children[*index as usize]);
+        }
+    }
+
+    pub fn for_kids<F>(&self, mut f: F)
+    where
+        F: FnMut(ChildIndex, &NodeRef),
+    {
+        let occupancy = self.occupancy.clone();
+        if !self.is_leaf() {
+            for (index, mask) in HILBERT_ORDER.iter() {
+                if (occupancy & mask) != 0 {
+                    f(*index, &self.children[*index as usize]);
+                }
+            }
+        }
+    }
+
+    pub fn for_kids_mut<F>(&mut self, mut f: F)
+    where
+        F: FnMut(ChildIndex, &mut NodeRef),
+    {
+        let occupancy = self.occupancy.clone();
+        if !self.is_leaf() {
+            for (index, mask) in HILBERT_ORDER.iter() {
+                if (occupancy & mask) != 0 {
+                    f(*index, &mut self.children[*index as usize]);
+                }
+            }
+        }
+    }
+
+    pub fn for_kids_ordered<F>(&self, order: ChildOrder, f: F)
+    where
+        F: FnMut(ChildIndex, &NodeRef),
+    {
+        self.for_kids(f);
     }
 
     pub fn index_offset(index: ChildIndex, offset: f32) -> Vec3A {
@@ -375,7 +428,7 @@ impl Node {
     }
 
     /// TODO: find literature on this
-    pub fn sorting_order(eye: &Vec3A) -> [ChildIndex; 8] {
-        [0, 1, 2, 3, 4, 5, 6, 7]
+    pub fn sorting_order(eye: &Vec3A) -> ChildOrder {
+        0
     }
 }
