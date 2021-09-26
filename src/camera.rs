@@ -16,6 +16,14 @@ impl Default for Camera {
     }
 }
 
+impl Camera {
+    pub fn draw_voxel(&mut self, center: &Vec3A) {
+        let x = ((center.x * 0.5 + 0.5) * (self.fb.width as f32)).round() as usize;
+        let y = ((center.z * 0.5 + 0.5) * (self.fb.height as f32)).round() as usize;
+        self.fb.data[y * self.fb.width + x] = 0xff0000ff;
+    }
+}
+
 pub struct Framebuffer {
     pub width: usize,
     pub height: usize,

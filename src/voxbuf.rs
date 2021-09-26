@@ -1,5 +1,5 @@
 use super::camera::Camera;
-use glam::Vec3A;
+use glam::{Vec3A, Vec4};
 use std::io::{BufRead, Read};
 use std::time::Instant;
 
@@ -54,6 +54,7 @@ impl VoxBuf {
         }
 
         let dim = 256;
+        let dim2 = dim * dim;
 
         let mut junk = String::new();
         reader.read_line(&mut junk).unwrap(); // translate
@@ -96,28 +97,43 @@ impl VoxBuf {
         stack.push_front((0, 0, 0, 0, 7));
 
         while let Some(iter) = stack.pop_back() {
+            println!("{:#?}", iter);
+
             let parent = iter.3 as usize;
             let lod = iter.4;
 
-            if lod == 0 {
-                continue;
-            }
-
             let cursor = nodes.len();
             nodes.resize_with(cursor + 8, Default::default);
-
             let node = nodes.get_mut(parent).unwrap();
-            node.occupancy = 0xff;
+
+            let mut offsets: [(u16, u16, u16); 8] = [(0, 0, 0); 8];
             for i in 0..8 {
-                let child = (cursor + i) as NodeRef;
-                node.children[i] = child;
-                stack.push_back((
+                offsets[i] = (
                     iter.0 | ((i & 1) << lod) as u16,
                     iter.1 | (((i & 2) >> 1) << lod) as u16,
                     iter.2 | (((i & 4) >> 2) << lod) as u16,
-                    child,
-                    lod - 1,
-                ));
+                );
+            }
+
+            if lod == 0 {
+                node.occupancy = 0x00;
+                for i in 0..8 {
+                    let offset = offsets[i];
+                    let index =
+                        (offset.2 as usize * dim2) + (offset.1 as usize * dim) + offset.0 as usize;
+                    if data[index] != 0 {
+                        node.occupancy |= Node::index_to_mask(i as ChildMask);
+                        node.children[i] = (cursor + i) as NodeRef;
+                    }
+                }
+            } else {
+                node.occupancy = 0xff;
+                for i in 0..8 {
+                    let child = (cursor + i) as NodeRef;
+                    let offset = offsets[i];
+                    node.children[i] = child;
+                    stack.push_back((offset.0, offset.1, offset.2, child, lod - 1));
+                }
             }
         }
 
@@ -128,24 +144,25 @@ impl VoxBuf {
         Self { nodes }
     }
 
-    pub fn walk(&self, eye: &Vec3A) -> Vec<NodeRef> {
+    pub fn walk(&self, eye: &Vec3A) -> Vec<(NodeRef, Vec3A)> {
         let timer = Instant::now();
 
-        let mut nodes = Vec::<NodeRef>::new();
-        // TODO: calculate child origins with descent
-        let mut stack = vec![Self::ROOT_NODE];
+        let mut nodes = Vec::<(NodeRef, Vec3A)>::new();
+        let mut stack = vec![(Self::ROOT_NODE, Vec3A::new(0.0, 0.0, 0.0), 0)];
 
-        while let Some(node_ref) = stack.pop() {
+        while let Some((node_ref, stem, depth)) = stack.pop() {
             let node = self.nodes.get(node_ref as usize).unwrap();
             if node.is_leaf() {
-                nodes.push(node_ref);
+                nodes.push((node_ref, stem.into()));
             } else {
                 let order = Node::sorting_order(eye);
+                let offset = 1.0 / ((2 << depth) as f32);
                 for index in order.iter() {
                     let mask = Node::index_to_mask(*index);
                     if node.is_occupied(mask) {
                         let child = node.get_child(*index);
-                        stack.push(child);
+                        let origin = stem + Node::index_offset(*index, offset);
+                        stack.push((child, origin, depth + 1));
                     }
                 }
             }
@@ -159,6 +176,9 @@ impl VoxBuf {
     pub fn draw(&self, camera: &mut Camera) {
         let timer = Instant::now();
         let walked = self.walk(&camera.eye);
+        for (_node_ref, voxel) in walked.iter() {
+            camera.draw_voxel(&voxel);
+        }
         println!("done drawing in {:?}", timer.elapsed());
     }
 }
@@ -204,19 +224,23 @@ impl Node {
         (self.occupancy & mask) != 0
     }
 
-    pub fn index_origin(index: ChildIndex) -> Vec3A {
+    pub fn index_offset(index: ChildIndex, offset: f32) -> Vec3A {
         match index {
-            0 => [-0.5, -0.5, -0.5],
-            1 => [0.5, -0.5, -0.5],
-            2 => [-0.5, 0.5, -0.5],
-            3 => [0.5, 0.5, -0.5],
-            4 => [-0.5, -0.5, 0.5],
-            5 => [0.5, -0.5, 0.5],
-            6 => [-0.5, 0.5, 0.5],
-            7 => [0.5, 0.5, 0.5],
+            0 => [-offset, -offset, -offset],
+            1 => [offset, -offset, -offset],
+            2 => [-offset, offset, -offset],
+            3 => [offset, offset, -offset],
+            4 => [-offset, -offset, offset],
+            5 => [offset, -offset, offset],
+            6 => [-offset, offset, offset],
+            7 => [offset, offset, offset],
             _ => panic!("invalid child index"),
         }
         .into()
+    }
+
+    pub fn index_origin(index: ChildIndex) -> Vec3A {
+        Self::index_offset(index, 0.5)
     }
 
     /// TODO: find literature on this
