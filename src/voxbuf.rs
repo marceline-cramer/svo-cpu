@@ -152,8 +152,8 @@ impl VoxBuf {
         let dummy_eye = Vec3A::new(3.0, 2.0, 1.0);
         vb.walk(&dummy_eye);
         vb.cull_unfilled();
-        // vb.walk(&dummy_eye);
-        // vb.sort_nodes();
+        vb.walk(&dummy_eye);
+        vb.breadth_sort_nodes();
         vb.walk(&dummy_eye);
         vb
     }
@@ -193,24 +193,25 @@ impl VoxBuf {
         true
     }
 
-    /// depth-sorts nodes
+    /// breadth-sorts nodes
     /// also removes unused nodes
-    pub fn sort_nodes(&mut self) {
+    pub fn breadth_sort_nodes(&mut self) {
         let timer = Instant::now();
 
         let mut nodes = Vec::<Node>::new();
         let mut cursor = 1;
 
-        let mut stack = vec![Self::ROOT_NODE];
-        while let Some(node_ref) = stack.pop() {
+        let mut queue = std::collections::VecDeque::<NodeRef>::new();
+        queue.push_front(Self::ROOT_NODE);
+        while let Some(node_ref) = queue.pop_back() {
             let mut node = self.nodes.get(node_ref as usize).unwrap().clone();
 
             if !node.is_leaf() {
                 for index in 0..8 {
                     let mask = Node::index_to_mask(index);
                     if node.is_occupied(mask) {
-                        stack.push(node.children[index as usize]);
-                        node.children[index as usize] = cursor;
+                        queue.push_front(node.children[index as usize]);
+                        node.children[index as usize] = cursor as NodeRef;
                         cursor += 1;
                     }
                 }
@@ -220,7 +221,7 @@ impl VoxBuf {
         }
 
         println!(
-            "depth-sorted {} nodes to {} nodes in {:?}",
+            "breadth-sorted {} nodes to {} nodes in {:?}",
             self.nodes.len(),
             nodes.len(),
             timer.elapsed()
