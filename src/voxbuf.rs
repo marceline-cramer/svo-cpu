@@ -129,9 +129,10 @@ impl VoxBuf {
                 }
 
                 if node.occupancy == 0x00 {
-                    node.data.color = 0xff0000ff;
+                    node.data.color = 0;
                 }
             } else {
+                node.data.color = 0xff00ffff;
                 node.occupancy = 0xff;
                 for i in 0..8 {
                     let child = (cursor + i) as NodeRef;
@@ -150,18 +151,18 @@ impl VoxBuf {
         Self { nodes }
     }
 
-    pub fn walk(&self, eye: &Vec3A) -> Vec<(NodeRef, Vec3A)> {
+    pub fn walk(&self, eye: &Vec3A) -> Vec<(Payload, Vec3A)> {
         let timer = Instant::now();
 
         let mut walked_num = 0;
-        let mut nodes = Vec::<(NodeRef, Vec3A)>::new();
+        let mut nodes = Vec::<(Payload, Vec3A)>::new();
         let mut stack = vec![(Self::ROOT_NODE, Vec3A::new(0.0, 0.0, 0.0), 0)];
 
         while let Some((node_ref, stem, depth)) = stack.pop() {
             walked_num += 1;
             let node = self.nodes.get(node_ref as usize).unwrap();
             if node.is_leaf() {
-                nodes.push((node_ref, stem.into()));
+                nodes.push((node.data, stem.into()));
             } else {
                 let order = Node::sorting_order(eye);
                 let offset = 1.0 / ((2 << depth) as f32);
@@ -185,28 +186,26 @@ impl VoxBuf {
         let walked = self.walk(&camera.eye);
         let timer = Instant::now();
         let leaf_num = walked.len();
-        for (node_ref, voxel) in walked.iter() {
-            let node = self.nodes.get(*node_ref as usize).unwrap();
-            camera.draw_voxel(&voxel, node.data.color);
+        for (voxel, center) in walked.iter() {
+            // println!("voxel: {:#?}", voxel);
+            camera.draw_voxel(&center, voxel.color);
         }
         println!("done drawing {} leaves in {:?}", leaf_num, timer.elapsed());
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Payload {
     color: u32,
 }
 
 impl Default for Payload {
     fn default() -> Self {
-        Self {
-            color: 0xff0000ff,
-        }
+        Self { color: 0xff0000ff }
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Node {
     occupancy: ChildMask,
     children: [NodeRef; 8],
