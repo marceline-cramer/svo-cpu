@@ -246,17 +246,14 @@ impl VoxBuf {
             let node = self.nodes.get(node_ref as usize).unwrap();
             let offset = 1.0 / ((2 << depth) as f32);
             let voxel = stem.extend(offset);
-            if node.is_leaf() {
-                leaf_num += 1;
-                on_node(true, &node.data, voxel);
-            } else {
-                if on_node(false, &node.data, voxel) {
-                    let order = Node::sorting_order(&eye);
-                    node.for_kids_ordered(order, |index, child| {
-                        let origin = stem + Node::index_offset(index, offset);
-                        stack.push((*child, origin, depth + 1));
-                    });
-                }
+
+            let is_leaf = node.is_leaf();
+            if on_node(is_leaf, &node.data, voxel) & !is_leaf {
+                let order = Node::sorting_order(&eye);
+                node.for_kids_ordered(order, |index, child| {
+                    let origin = stem + Node::index_offset(index, offset);
+                    stack.push((*child, origin, depth + 1));
+                });
             }
         }
 
