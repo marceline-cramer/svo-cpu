@@ -261,7 +261,7 @@ impl VoxBuf {
         nodes
     }
 
-    pub fn draw_occluded(&self, camera: &mut Camera) {
+    pub fn draw(&self, camera: &mut Camera) {
         let timer = Instant::now();
 
         let eye = camera.eye;
@@ -272,13 +272,14 @@ impl VoxBuf {
         while let Some((node_ref, stem, depth)) = stack.pop() {
             walked_num += 1;
             let node = self.nodes.get(node_ref as usize).unwrap();
+            let offset = 1.0 / ((2 << depth) as f32);
+            let voxel = stem.extend(offset);
             if node.is_leaf() {
                 leaf_num += 1;
-                camera.draw_voxel(&stem, node.data.color);
+                camera.draw_voxel(&voxel, node.data.color);
             } else {
-                if camera.draw_voxel(&stem, 0) {
+//                if camera.draw_voxel(&voxel, 0) {
                     let order = Node::sorting_order(&eye);
-                    let offset = 1.0 / ((2 << depth) as f32);
                     for index in order.iter() {
                         let mask = Node::index_to_mask(*index);
                         if node.is_occupied(mask) {
@@ -287,7 +288,7 @@ impl VoxBuf {
                             stack.push((child, origin, depth + 1));
                         }
                     }
-                }
+//                }
             }
         }
 
@@ -298,17 +299,6 @@ impl VoxBuf {
         );
 
         println!("walked over {} nodes", walked_num);
-    }
-
-    pub fn draw(&self, camera: &mut Camera) {
-        let walked = self.walk(&camera.eye);
-        let timer = Instant::now();
-        let leaf_num = walked.len();
-        for (voxel, center) in walked.iter() {
-            // println!("voxel: {:#?}", voxel);
-            camera.draw_voxel(&center, voxel.color);
-        }
-        println!("done drawing {} leaves in {:?}", leaf_num, timer.elapsed());
     }
 }
 

@@ -28,7 +28,7 @@ fn main() {
     while window.is_open() && !window.is_key_down(Key::Escape) {
         cam.update();
         cam.fb.clear();
-        vb.draw_occluded(&mut cam);
+        vb.draw(&mut cam);
         cam.fb.update_window(&mut window);
     }
 }

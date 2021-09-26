@@ -1,4 +1,4 @@
-use glam::{Mat4, Vec3, Vec3A};
+use glam::{Mat4, Vec3, Vec3A, Vec4};
 use minifb::Window;
 use std::cmp::min;
 use std::time::Instant;
@@ -25,18 +25,34 @@ impl Default for Camera {
 }
 
 impl Camera {
-    pub fn draw_voxel(&mut self, center: &Vec3A, color: u32) -> bool {
-        let vertex = center.extend(1.0);
-        let frag = self.vp * vertex;
+    pub fn draw_voxel(&mut self, center: &Vec4, color: u32) -> bool {
+        let mut vertex = center.clone();
+        vertex.w = 1.0;
+        let mut frag = self.vp * vertex;
+        frag.z = -center.w;
         let frag: Vec3A = (frag / frag.w).into();
         // println!("frag: {:#?}", frag);
         self.draw_point(&frag, color)
     }
 
     pub fn draw_point(&mut self, center: &Vec3A, color: u32) -> bool {
-        let x = ((center.x * 0.5 + 0.5) * (self.fb.width as f32)).round() as usize;
-        let y = ((center.y * 0.5 + 0.5) * (self.fb.height as f32)).round() as usize;
-        self.fb.point(color, x, y)
+        let w = self.fb.width as f32;
+        let h = self.fb.height as f32;
+        let screen_pos = glam::Vec2::new(center.x, center.y) * 0.5 + 0.5;
+        let screen_scale = Vec4::new(w, h, w, h);
+        let screen_pos = screen_pos.extend(center.z).extend(center.z);
+        let screen_pos = screen_pos * screen_scale;
+
+        let [x, y, rx, ry] = screen_pos.to_array();
+
+        let l = (x - rx).round() as usize;
+        let t = (y - rx).round() as usize;
+        let b = (y + ry).round() as usize;
+        let r = (x + ry).round() as usize;
+        // self.fb.point(color, x, y)
+        let color = 0x7f0000 | ((rx.fract() * 255.0) as u32) << 8 | (ry.fract() * 255.0) as u32;
+        self.fb.rect(color, l, t, r, b);
+        true
     }
 
     fn make_eye(step: f32) -> Vec3 {
