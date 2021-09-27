@@ -7,6 +7,7 @@ pub struct Camera {
     pub eye: Vec3A,
     pub fb: Framebuffer,
     start: Instant,
+    px: f32,
     min_point: f32,
     max_test: f32,
     vp: Mat4,
@@ -24,6 +25,7 @@ impl Default for Camera {
             eye: eye.into(),
             fb,
             start: Instant::now(),
+            px,
             min_point,
             max_test,
             vp,
@@ -76,16 +78,16 @@ impl Camera {
         let w = self.fb.width as f32;
         let h = self.fb.height as f32;
         let screen_pos = glam::Vec2::new(center.x, center.y) * 0.5 + 0.5;
-        let screen_scale = Vec4::new(w, h, w, h);
-        let screen_pos = screen_pos.extend(center.z).extend(center.z);
+        let screen_scale = Vec3A::new(w, h, self.px);
+        let screen_pos: Vec3A = screen_pos.extend(center.z).into();
         let screen_pos = screen_pos * screen_scale;
 
-        let [x, y, rx, ry] = screen_pos.to_array();
+        let [x, y, r] = screen_pos.to_array();
 
-        let l = (x - rx).floor() as usize;
-        let t = (y - ry).floor() as usize;
-        let b = (y + ry).ceil() as usize;
-        let r = (x + rx).ceil() as usize;
+        let l = (x - r).floor() as usize;
+        let t = (y - r).floor() as usize;
+        let b = (y + r).ceil() as usize;
+        let r = (x + r).ceil() as usize;
         (l, t, r, b)
     }
 
