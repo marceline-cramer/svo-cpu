@@ -110,7 +110,7 @@ impl Camera {
 
     fn make_eye(step: f32) -> Vec3 {
         const R: f32 = 2.0;
-        const H: f32 = 2.0;
+        const H: f32 = 1.0;
         let angle = step;
         Vec3::new(angle.cos() * R, H, angle.sin() * R)
     }
