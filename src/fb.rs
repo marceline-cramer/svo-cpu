@@ -31,16 +31,48 @@ impl Default for Framebuffer<Pixel> {
     }
 }
 
+fn pixel_to_simd(p: Pixel) -> packed_simd::u32x4 {
+    let a = (p >> 24) & 0xff;
+    let r = (p >> 16) & 0xff;
+    let g = (p >> 8) & 0xff;
+    let b = p & 0xff;
+    packed_simd::u32x4::new(a, r, g, b)
+}
+
+fn simd_to_pixel(simd: packed_simd::u32x4) -> Pixel {
+    unsafe {
+        (simd.extract_unchecked(0) << 24) | // a
+        (simd.extract_unchecked(1) << 16) | // r
+        (simd.extract_unchecked(2) << 8) | // g
+        simd.extract_unchecked(3) // b
+    }
+}
+
+const ALPHA_BIAS: u32 = 24;
+const MAX_PIXEL: packed_simd::u32x4 = packed_simd::u32x4::new(0xff, 0xff, 0xff, 0xff);
+
 impl Target<Pixel> for Framebuffer<Pixel> {
     fn draw(&mut self, ptr: *mut Pixel, p: Pixel) {
-        // TODO: blending
         unsafe {
-            *ptr = p;
+            let dst = *ptr;
+            if dst == 0 {
+                *ptr = p;
+            } else {
+                let dst = pixel_to_simd(dst);
+                let dst_a = dst.extract_unchecked(0);
+                if dst_a < 255 {
+                    let a = 256 - dst_a;
+                    let dst = dst.replace_unchecked(0, dst_a + ALPHA_BIAS);
+                    let src = pixel_to_simd(p);
+                    let dst = MAX_PIXEL.min(((src * a) >> 8) + dst);
+                    *ptr = simd_to_pixel(dst);
+                }
+            }
         }
     }
 
     fn test(&self, ptr: *const Pixel) -> bool {
-        unsafe { *ptr == 0 }
+        unsafe { *ptr & 0xff000000 != 0xff000000 }
     }
 }
 
