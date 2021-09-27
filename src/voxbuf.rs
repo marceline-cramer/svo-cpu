@@ -292,8 +292,7 @@ impl VoxBuf {
                 camera.draw_voxel(&voxel, data.color);
                 true
             } else {
-                // camera.test_voxel(&voxel)
-                true
+                camera.test_voxel(&voxel)
             }
         });
 
