@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2021 Marceline Cramer
+
 use glam::{Mat4, Vec3, Vec3A, Vec4};
 use minifb::Window;
 use std::cmp::min;

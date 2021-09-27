@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2021 Marceline Cramer
+
 use minifb::{Key, Window, WindowOptions};
 
 mod camera;

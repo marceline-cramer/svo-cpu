@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2021 Marceline Cramer
+
 use super::camera::Camera;
 use glam::{Vec3A, Vec4};
 use std::io::{BufRead, Read};
