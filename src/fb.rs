@@ -2,61 +2,36 @@ use minifb::Window;
 
 type Bounds = (usize, usize, usize, usize);
 type Point = (usize, usize);
-pub type ColorBuffer = Framebuffer<u32>;
+
+type Pixel = u32;
+pub type ColorBuffer = Framebuffer<Pixel>;
 
 pub trait Target<P> {
     fn draw(&mut self, ptr: *mut P, p: P);
     fn test(&self, ptr: *const P) -> bool;
 }
 
-pub struct Framebuffer<P>
-where
-    P: Copy,
-{
+pub struct Framebuffer<P> {
     pub width: usize,
     pub height: usize,
     pub data: Vec<P>,
 }
 
-impl<P> Target<P> for Framebuffer<P>
-where
-    P: Copy + From<u8> + std::cmp::PartialEq,
-{
-    fn draw(&mut self, ptr: *mut P, p: P) {
+impl Target<Pixel> for Framebuffer<Pixel> {
+    fn draw(&mut self, ptr: *mut Pixel, p: Pixel) {
         // TODO: blending
         unsafe {
             *ptr = p;
         }
     }
 
-    fn test(&self, ptr: *const P) -> bool {
-        unsafe { *ptr == P::from(0) }
+    fn test(&self, ptr: *const Pixel) -> bool {
+        unsafe { *ptr == 0 }
     }
 }
 
-impl<P> Framebuffer<P>
-where
-    P: Copy + Clone + From<bool>,
-{
-    pub fn clear(&mut self) {
-        self.data.fill(false.into());
-    }
-}
-
-impl<P> Framebuffer<P>
-where
-    P: Copy + From<u8> + std::cmp::PartialEq,
-{
-    fn calc_offset(&self, xy: Point) -> Option<usize> {
-        let offset = xy.1 * self.width + xy.0;
-        if offset < self.data.len() {
-            Some(offset)
-        } else {
-            None
-        }
-    }
-
-    pub fn draw_point(&mut self, xy: Point, p: P) {
+impl Framebuffer<Pixel> {
+    pub fn draw_point(&mut self, xy: Point, p: Pixel) {
         if let Some(offset) = self.calc_offset(xy) {
             let ptr = unsafe { self.data.as_mut_ptr().add(offset) };
             self.draw(ptr, p);
@@ -72,7 +47,7 @@ where
         }
     }
 
-    pub fn draw_rect(&mut self, b: Bounds, c: P) {
+    pub fn draw_rect(&mut self, b: Bounds, c: Pixel) {
         unsafe {
             let (l, t, r, mut b) = b;
             let width = r - l;
@@ -114,54 +89,35 @@ where
             false
         }
     }
-
-    // TODO: rewrite with pointers so that .test() can be used
-    /*pub fn fill_holes(&mut self) {
-        for row_index in 1..self.height {
-            let start = row_index * self.width;
-            let end = start + self.width;
-            let mut all_empty = true;
-            for index in start..end {
-                let pixel = self.data[index];
-                if !(pixel.into()) {
-                    self.data[index] = self.data[index - self.width];
-                } else {
-                    all_empty = false;
-                }
-            }
-
-            if all_empty {
-                break;
-            }
-        }
-
-        for row in self.data.chunks_mut(self.width) {
-            let mut x = self.width;
-            while x > 0 {
-                x -= 1;
-                if row[x].into() {
-                    break;
-                }
-            }
-
-            let mut old: P = false.into();
-            for pixel in row[0..x].iter_mut() {
-                let new = *pixel;
-                if !(new.into()) {
-                    *pixel = old;
-                } else {
-                    old = new;
-                }
-            }
-        }
-    }*/
 }
 
-impl Default for ColorBuffer {
+impl Framebuffer<Pixel> {
+    pub fn update_window(&mut self, window: &mut Window) {
+        window
+            .update_with_buffer(&self.data, self.width, self.height)
+            .unwrap();
+    }
+}
+
+impl<P> Framebuffer<P> {
+    fn calc_offset(&self, xy: Point) -> Option<usize> {
+        let offset = xy.1 * self.width + xy.0;
+        if offset < self.data.len() {
+            Some(offset)
+        } else {
+            None
+        }
+    }
+}
+
+impl<P> Default for Framebuffer<P>
+where
+    P: Clone + From<bool>,
+{
     fn default() -> Self {
         let width = 1280;
         let height = 720;
-        let data = vec![0; width * height];
+        let data = vec![false.into(); width * height];
         Self {
             width,
             height,
@@ -170,10 +126,11 @@ impl Default for ColorBuffer {
     }
 }
 
-impl ColorBuffer {
-    pub fn update_window(&mut self, window: &mut Window) {
-        window
-            .update_with_buffer(&self.data, self.width, self.height)
-            .unwrap();
+impl<P> Framebuffer<P>
+where
+    P: Clone + From<bool>,
+{
+    pub fn clear(&mut self) {
+        self.data.fill(false.into());
     }
 }
