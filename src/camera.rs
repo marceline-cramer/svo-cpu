@@ -2,9 +2,9 @@
 // Copyright (c) 2021 Marceline Cramer
 
 use glam::{Mat4, Vec3, Vec3A, Vec4};
-use minifb::Window;
 use std::cmp::min;
 use std::time::Instant;
+use super::fb::ColorBuffer as Framebuffer;
 
 pub struct Camera {
     pub eye: Vec3A,
@@ -105,7 +105,7 @@ impl Camera {
 
     pub fn draw_point(&mut self, center: &Vec3A, color: u32) {
         let bounds = self.point_bounds(center);
-        self.fb.draw_rect(color, bounds);
+        self.fb.draw_rect(bounds, color);
     }
 
     fn make_eye(step: f32) -> Vec3 {
@@ -132,135 +132,5 @@ impl Camera {
         let eye = Self::make_eye(step);
         self.eye = eye.into();
         self.vp = Self::make_vp(&eye, self.fb.width, self.fb.height);
-    }
-}
-
-pub struct Framebuffer {
-    pub width: usize,
-    pub height: usize,
-    pub data: Vec<u32>,
-}
-
-impl Default for Framebuffer {
-    fn default() -> Self {
-        let width = 1280;
-        let height = 720;
-        let data = vec![0; width * height];
-        Self {
-            width,
-            height,
-            data,
-        }
-    }
-}
-
-impl Framebuffer {
-    fn draw_point(&mut self, xy: (usize, usize), c: u32) {
-        let offset = xy.1 * self.width + xy.0;
-        if offset < self.data.len() {
-            unsafe {
-                *self.data.as_mut_ptr().add(offset) = c;
-            }
-        }
-    }
-
-    fn test_point(&self, xy: (usize, usize)) -> bool {
-        let offset = xy.1 * self.width + xy.0;
-        if offset < self.data.len() {
-            unsafe { *self.data.as_ptr().add(offset) == 0 }
-        } else {
-            false
-        }
-    }
-
-    fn draw_rect(&mut self, c: u32, b: (usize, usize, usize, usize)) {
-        unsafe {
-            let (l, t, r, mut b) = b;
-            let width = r - l;
-            let space = self.width - width;
-            let start = t * self.width + l;
-            let mut ptr = self.data.as_mut_ptr().add(start);
-            while b > t {
-                let mut r = r;
-                while r > l {
-                    // TODO: blending
-                    *ptr = c;
-                    ptr = ptr.add(1);
-                    r -= 1;
-                }
-                ptr = ptr.add(space);
-                b -= 1;
-            }
-        }
-    }
-
-    fn test_rect(&self, b: (usize, usize, usize, usize)) -> bool {
-        unsafe {
-            let (l, t, r, mut b) = b;
-            let width = r - l;
-            let space = self.width - width;
-            let start = t * self.width + l;
-            let mut ptr = self.data.as_ptr().add(start);
-            let mut wrote = false;
-            while b > t {
-                let mut r = r;
-                while r > l {
-                    wrote |= *ptr == 0;
-                    ptr = ptr.add(1);
-                    r -= 1;
-                }
-                ptr = ptr.add(space);
-                b -= 1;
-            }
-            wrote
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.data.fill(0);
-    }
-
-    pub fn update_window(&mut self, window: &mut Window) {
-        /*for row_index in 1..self.height {
-            let start = row_index * self.width;
-            let end = start + self.width;
-            let mut all_empty = true;
-            for index in start..end {
-                let pixel = self.data[index];
-                if pixel == 0 {
-                    self.data[index] = self.data[index - self.width];
-                } else {
-                    all_empty = false;
-                }
-            }
-
-            if all_empty {
-                break;
-            }
-        }
-
-        for row in self.data.chunks_mut(self.width) {
-            let mut x = self.width;
-            while x > 0 {
-                x -= 1;
-                if row[x] != 0 {
-                    break;
-                }
-            }
-
-            let mut old: u32 = 0;
-            for pixel in row[0..x].iter_mut() {
-                let new = *pixel;
-                if new == 0 {
-                    *pixel = old;
-                } else {
-                    old = new;
-                }
-            }
-        }*/
-
-        window
-            .update_with_buffer(&self.data, self.width, self.height)
-            .unwrap();
     }
 }

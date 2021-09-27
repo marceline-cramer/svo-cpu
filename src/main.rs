@@ -7,6 +7,7 @@ use minifb::{Key, Window, WindowOptions};
 extern crate lazy_static;
 
 mod camera;
+mod fb;
 mod voxbuf;
 
 const WIDTH: usize = 240;
