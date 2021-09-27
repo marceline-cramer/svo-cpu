@@ -23,7 +23,7 @@ impl Default for Camera {
         let px = min(fb.width, fb.height) as f32;
         let min_point = 0.5 / px;
         let max_test = 16.0 / px;
-        let vp = Self::make_vp(0.0, fb.width, fb.height);
+        let vp = Self::make_vp(&eye, fb.width, fb.height);
         Self {
             eye: eye.into(),
             fb,
@@ -115,14 +115,13 @@ impl Camera {
         Vec3::new(angle.cos() * R, H, angle.sin() * R)
     }
 
-    fn make_vp(step: f32, width: usize, height: usize) -> Mat4 {
+    fn make_vp(eye: &Vec3, width: usize, height: usize) -> Mat4 {
         const FOV: f32 = 90.0;
         const NEAR: f32 = 0.1;
         const FAR: f32 = 100.0;
-        let eye = Self::make_eye(step);
         let center = Vec3::new(0.0, -0.25, 0.0);
         let up = Vec3::new(0.0, 1.0, 0.0);
-        let v = Mat4::look_at_lh(eye, center, up);
+        let v = Mat4::look_at_lh(*eye, center, up);
         let aspect = (width as f32) / (height as f32);
         let p = Mat4::perspective_rh(FOV.to_radians(), aspect, NEAR, FAR);
         p * v
@@ -130,7 +129,9 @@ impl Camera {
 
     pub fn update(&mut self) {
         let step = self.start.elapsed().as_micros() as f32 / 1_000_000.0;
-        self.vp = Self::make_vp(step, self.fb.width, self.fb.height);
+        let eye = Self::make_eye(step);
+        self.eye = eye.into();
+        self.vp = Self::make_vp(&eye, self.fb.width, self.fb.height);
     }
 }
 
