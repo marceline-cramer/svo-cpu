@@ -4,6 +4,7 @@ type Bounds = (usize, usize, usize, usize);
 type Point = (usize, usize);
 
 type Pixel = u32;
+type PixelSimd = packed_simd::u32x16;
 pub type ColorBuffer = Framebuffer<Pixel>;
 
 pub trait Target<P> {
@@ -15,6 +16,19 @@ pub struct Framebuffer<P> {
     pub width: usize,
     pub height: usize,
     pub data: Vec<P>,
+}
+
+impl Default for Framebuffer<Pixel> {
+    fn default() -> Self {
+        let width = 1280;
+        let height = 720;
+        let data = vec![0; width * height];
+        Self {
+            width,
+            height,
+            data,
+        }
+    }
 }
 
 impl Target<Pixel> for Framebuffer<Pixel> {
@@ -89,9 +103,11 @@ impl Framebuffer<Pixel> {
             false
         }
     }
-}
 
-impl Framebuffer<Pixel> {
+    pub fn clear(&mut self) {
+        self.data.fill(0);
+    }
+
     pub fn update_window(&mut self, window: &mut Window) {
         window
             .update_with_buffer(&self.data, self.width, self.height)
@@ -107,30 +123,5 @@ impl<P> Framebuffer<P> {
         } else {
             None
         }
-    }
-}
-
-impl<P> Default for Framebuffer<P>
-where
-    P: Clone + From<bool>,
-{
-    fn default() -> Self {
-        let width = 1280;
-        let height = 720;
-        let data = vec![false.into(); width * height];
-        Self {
-            width,
-            height,
-            data,
-        }
-    }
-}
-
-impl<P> Framebuffer<P>
-where
-    P: Clone + From<bool>,
-{
-    pub fn clear(&mut self) {
-        self.data.fill(false.into());
     }
 }
