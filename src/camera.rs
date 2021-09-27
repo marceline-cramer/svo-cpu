@@ -8,6 +8,7 @@ pub struct Camera {
     pub fb: Framebuffer,
     start: Instant,
     min_point: f32,
+    max_test: f32,
     vp: Mat4,
 }
 
@@ -15,13 +16,16 @@ impl Default for Camera {
     fn default() -> Self {
         let eye = Self::make_eye(0.0);
         let fb = Framebuffer::default();
-        let min_point = 0.5 / min(fb.width, fb.height) as f32;
+        let px = min(fb.width, fb.height) as f32;
+        let min_point = 0.5 / px;
+        let max_test = 16.0 / px;
         let vp = Self::make_vp(0.0, fb.width, fb.height);
         Self {
             eye: eye.into(),
             fb,
             start: Instant::now(),
             min_point,
+            max_test,
             vp,
         }
     }
@@ -86,8 +90,7 @@ impl Camera {
     }
 
     pub fn test_point(&self, center: &Vec3A) -> bool {
-        const MAX_TEST: f32 = 0.1;
-        if center.z > MAX_TEST {
+        if center.z > self.max_test {
             return true;
         }
 
