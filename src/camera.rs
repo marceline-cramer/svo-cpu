@@ -184,7 +184,7 @@ impl Framebuffer {
                 let mut r = r;
                 while r > l {
                     // TODO: blending
-                    *ptr |= c;
+                    *ptr = c;
                     ptr = ptr.add(1);
                     r -= 1;
                 }
