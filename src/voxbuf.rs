@@ -244,7 +244,6 @@ impl VoxBuf {
         let mut walked_num = 0;
         let mut leaf_num = 0;
         let origin = Vec3A::new(0.0, 0.0, 0.0);
-        let order = Node::sorting_order(&eye, &origin);
         let mut stack = vec![(Self::ROOT_NODE, origin, 0)];
 
         while let Some((node_ref, stem, depth)) = stack.pop() {
@@ -258,6 +257,7 @@ impl VoxBuf {
                 leaf_num += 1
             };
             if on_node(is_leaf, &node.data, voxel) & !is_leaf {
+                let order = Node::sorting_order(&eye, &stem);
                 node.for_kids_ordered(order, |index, child| {
                     let origin = stem + Node::index_offset(index, offset);
                     stack.push((*child, origin, depth + 1));
