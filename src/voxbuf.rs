@@ -3,6 +3,7 @@
 
 use super::camera::Camera;
 use glam::{Vec3A, Vec4};
+use std::convert::TryInto;
 use std::io::{BufRead, Read};
 use std::time::Instant;
 
@@ -337,68 +338,6 @@ const HILBERT_ORDER: [(ChildIndex, ChildMask); 8] = [
     (4, 0x10),
 ];
 
-const SORTED_ORDER_INDICES: [[ChildIndex; 8]; 48] = [
-    // 0-7
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-
-    // 8-15
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-
-    // 16-23
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-
-    // 24-31
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-
-    // 32-39
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-
-    // 40-47
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-    [0, 1, 2, 3, 4, 5, 6, 7],
-];
-
 impl Node {
     pub fn get_child(&self, index: ChildIndex) -> NodeRef {
         self.children[index as usize]
@@ -500,11 +439,11 @@ impl Node {
 
     /// based on: https://iquilezles.org/www/articles/volumesort/volumesort.htm
     pub fn sorting_order(eye: &Vec3A, stem: &Vec3A) -> ChildOrder {
-        let s = eye.cmpgt(*stem).bitmask();
+        let s = eye.cmplt(*stem).bitmask();
         let sx = (s & 0b001) as ChildOrder;
         let sy = ((s & 0b010) >> 1) as ChildOrder;
         let sz = ((s & 0b100) >> 2) as ChildOrder;
-        let a = (*stem - *eye).abs();
+        let a = (*eye - *stem).abs();
 
         if a.x > a.y && a.x > a.z {
             if a.y > a.z {
@@ -526,4 +465,61 @@ impl Node {
             }
         }
     }
+}
+
+fn calc_child_orders_sub(x: u8, y: u8, z: u8) -> [ChildIndex; 8] {
+    let mut orders = [0 as u8; 8];
+    let masks = (1 << x, 1 << y, 1 << z);
+    for i in 0..8 {
+        let mut c: u8 = 0x00;
+
+        if (i & masks.0) != 0 {
+            c |= 0b001;
+        }
+
+        if (i & masks.1) != 0 {
+            c |= 0b10;
+        }
+
+        if (i & masks.2) != 0 {
+            c |= 0b100;
+        }
+
+        orders[i] = c;
+    }
+    orders
+}
+
+fn calc_child_orders_flip(x: u8, y: u8, z: u8) -> [[ChildIndex; 8]; 8] {
+    let mut orders = [[0 as u8; 8]; 8];
+    let base = calc_child_orders_sub(x, y, z);
+    for i in 0..8 {
+        let order = &mut orders[i];
+        for j in 0..8 {
+            order[j] = i as u8 ^ base[j];
+        }
+    }
+    orders
+}
+
+fn calc_child_orders() -> [[ChildIndex; 8]; 48] {
+    [
+        calc_child_orders_flip(2, 1, 0),
+        calc_child_orders_flip(2, 0, 1),
+        calc_child_orders_flip(1, 2, 0),
+        calc_child_orders_flip(0, 1, 1),
+        calc_child_orders_flip(1, 0, 2),
+        calc_child_orders_flip(0, 1, 2),
+    ]
+    .concat()
+    .try_into()
+    .unwrap()
+}
+
+lazy_static! {
+    static ref SORTED_ORDER_INDICES: [[ChildIndex; 8]; 48] = {
+        let orders = calc_child_orders();
+        println!("{:#?}", orders);
+        orders
+    };
 }
