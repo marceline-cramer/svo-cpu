@@ -472,18 +472,18 @@ fn calc_child_orders_sub(x: u8, y: u8, z: u8) -> [ChildIndex; 8] {
     let mut orders = [0 as u8; 8];
     let masks = (1 << x, 1 << y, 1 << z);
     for i in 0..8 {
-        let mut c: u8 = 0x00;
+        let mut c: u8 = 0x07;
 
         if (i & masks.0) != 0 {
-            c |= 0b001;
+            c = 0b110;
         }
 
         if (i & masks.1) != 0 {
-            c |= 0b010;
+            c &= 0b101;
         }
 
         if (i & masks.2) != 0 {
-            c |= 0b100;
+            c &= 0b011;
         }
 
         orders[i] = c;
