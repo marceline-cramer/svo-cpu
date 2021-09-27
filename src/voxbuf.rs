@@ -407,7 +407,6 @@ fn calc_child_orders() -> [[(ChildIndex, ChildMask); 8]; 48] {
 lazy_static! {
     static ref SORTED_ORDER_INDICES: [[(ChildIndex, ChildMask); 8]; 48] = {
         let orders = calc_child_orders();
-        println!("{:#?}", orders);
         orders
     };
 }
