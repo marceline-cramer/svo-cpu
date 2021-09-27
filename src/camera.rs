@@ -148,50 +148,63 @@ impl Default for Framebuffer {
 impl Framebuffer {
     fn draw_point(&mut self, xy: (usize, usize), c: u32) {
         let offset = xy.1 * self.width + xy.0;
-        self.data[offset] = c;
+        if offset < self.data.len() {
+            unsafe {
+                *self.data.as_mut_ptr().add(offset) = c;
+            }
+        }
     }
 
     fn test_point(&self, xy: (usize, usize)) -> bool {
         let offset = xy.1 * self.width + xy.0;
         if offset < self.data.len() {
-            self.data[offset] == 0
+            unsafe { *self.data.as_ptr().add(offset) == 0 }
         } else {
             false
         }
     }
 
     fn draw_rect(&mut self, c: u32, b: (usize, usize, usize, usize)) {
-        let (l, t, r, b) = b;
-        let xt = t * self.width;
-        let mut xl = xt + l;
-        let mut xr = xt + r;
-        for _ in t..b {
-            let row = &mut self.data[xl..xr];
-            for pixel in row.iter_mut() {
-                let old = *pixel;
-                // TODO: blending
-                *pixel = old | c;
+        unsafe {
+            let (l, t, r, mut b) = b;
+            let width = r - l;
+            let space = self.width - width;
+            let start = t * self.width + l;
+            let mut ptr = self.data.as_mut_ptr().add(start);
+            while b > t {
+                let mut r = r;
+                while r > l {
+                    // TODO: blending
+                    *ptr |= c;
+                    ptr = ptr.add(1);
+                    r -= 1;
+                }
+                ptr = ptr.add(space);
+                b -= 1;
             }
-            xl += self.width;
-            xr += self.width;
         }
     }
 
     fn test_rect(&self, b: (usize, usize, usize, usize)) -> bool {
-        let (l, t, r, b) = b;
-        let xt = t * self.width;
-        let mut xl = xt + l;
-        let mut xr = xt + r;
-        let mut wrote = false;
-        for _ in t..b {
-            let row = &self.data[xl..xr];
-            for pixel in row.iter() {
-                wrote = wrote | (*pixel == 0)
+        unsafe {
+            let (l, t, r, mut b) = b;
+            let width = r - l;
+            let space = self.width - width;
+            let start = t * self.width + l;
+            let mut ptr = self.data.as_ptr().add(start);
+            let mut wrote = false;
+            while b > t {
+                let mut r = r;
+                while r > l {
+                    wrote |= *ptr == 0;
+                    ptr = ptr.add(1);
+                    r -= 1;
+                }
+                ptr = ptr.add(space);
+                b -= 1;
             }
-            xl += self.width;
-            xr += self.width;
+            wrote
         }
-        wrote
     }
 
     pub fn clear(&mut self) {
