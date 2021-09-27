@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2021 Marceline Cramer
 
+use super::fb::ColorBuffer as Framebuffer;
 use glam::{Mat4, Vec3, Vec3A, Vec4};
 use std::cmp::min;
 use std::time::Instant;
-use super::fb::ColorBuffer as Framebuffer;
 
 pub struct Camera {
     pub eye: Vec3A,

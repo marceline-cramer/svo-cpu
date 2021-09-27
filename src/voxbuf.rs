@@ -226,7 +226,7 @@ impl VoxBuf {
                 let color = (((color & R_MASK) >> 1) & R_MASK)
                     | (((color & G_MASK) >> 1) & G_MASK)
                     | (((color & B_MASK) >> 1) & B_MASK);
-                node.data.color = 0x40000000 | color;
+                node.data.color = 0xff000000 | color;
             }
 
             nodes.push(node);
