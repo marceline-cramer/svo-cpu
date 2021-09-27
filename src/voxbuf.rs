@@ -243,7 +243,9 @@ impl VoxBuf {
 
         let mut walked_num = 0;
         let mut leaf_num = 0;
-        let mut stack = vec![(Self::ROOT_NODE, Vec3A::new(0.0, 0.0, 0.0), 0)];
+        let origin = Vec3A::new(0.0, 0.0, 0.0);
+        let order = Node::sorting_order(&eye, &origin);
+        let mut stack = vec![(Self::ROOT_NODE, origin, 0)];
 
         while let Some((node_ref, stem, depth)) = stack.pop() {
             walked_num += 1;
@@ -256,7 +258,6 @@ impl VoxBuf {
                 leaf_num += 1
             };
             if on_node(is_leaf, &node.data, voxel) & !is_leaf {
-                let order = Node::sorting_order(&eye, &stem);
                 node.for_kids_ordered(order, |index, child| {
                     let origin = stem + Node::index_offset(index, offset);
                     stack.push((*child, origin, depth + 1));
@@ -291,7 +292,8 @@ impl VoxBuf {
                 camera.draw_voxel(&voxel, data.color);
                 true
             } else {
-                camera.test_voxel(&voxel)
+                // camera.test_voxel(&voxel)
+                true
             }
         });
 
@@ -439,7 +441,7 @@ impl Node {
 
     /// based on: https://iquilezles.org/www/articles/volumesort/volumesort.htm
     pub fn sorting_order(eye: &Vec3A, stem: &Vec3A) -> ChildOrder {
-        let s = eye.cmplt(*stem).bitmask();
+        let s = eye.cmpge(*stem).bitmask();
         let sx = (s & 0b001) as ChildOrder;
         let sy = ((s & 0b010) >> 1) as ChildOrder;
         let sz = ((s & 0b100) >> 2) as ChildOrder;
@@ -478,7 +480,7 @@ fn calc_child_orders_sub(x: u8, y: u8, z: u8) -> [ChildIndex; 8] {
         }
 
         if (i & masks.1) != 0 {
-            c |= 0b10;
+            c |= 0b010;
         }
 
         if (i & masks.2) != 0 {
@@ -507,7 +509,7 @@ fn calc_child_orders() -> [[ChildIndex; 8]; 48] {
         calc_child_orders_flip(2, 1, 0),
         calc_child_orders_flip(2, 0, 1),
         calc_child_orders_flip(1, 2, 0),
-        calc_child_orders_flip(0, 1, 1),
+        calc_child_orders_flip(0, 2, 1),
         calc_child_orders_flip(1, 0, 2),
         calc_child_orders_flip(0, 1, 2),
     ]
