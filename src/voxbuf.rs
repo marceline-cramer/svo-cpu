@@ -413,10 +413,8 @@ impl Node {
         if !self.is_leaf() {
             let occupancy = self.occupancy.clone();
             let indices = SORTED_ORDER_INDICES[order as usize];
-            for index in indices.iter() {
-                // TODO: statically cache this
-                let mask = Self::index_to_mask(*index);
-                if (occupancy & mask) != 0 {
+            for (index, mask) in indices.iter() {
+                if (occupancy & *mask) != 0 {
                     f(*index, &self.children[*index as usize]);
                 }
             }
@@ -491,19 +489,20 @@ fn calc_child_orders_sub(x: u8, y: u8, z: u8) -> [ChildIndex; 8] {
     orders
 }
 
-fn calc_child_orders_flip(x: u8, y: u8, z: u8) -> [[ChildIndex; 8]; 8] {
-    let mut orders = [[0 as u8; 8]; 8];
+fn calc_child_orders_flip(x: u8, y: u8, z: u8) -> [[(ChildIndex, ChildMask); 8]; 8] {
+    let mut orders = [[(0 as u8, 0 as u8); 8]; 8];
     let base = calc_child_orders_sub(x, y, z);
     for i in 0..8 {
         let order = &mut orders[i];
         for j in 0..8 {
-            order[j] = j as u8 ^ base[i];
+            let index = j as u8 ^ base[i];
+            order[j] = (index, Node::index_to_mask(index));
         }
     }
     orders
 }
 
-fn calc_child_orders() -> [[ChildIndex; 8]; 48] {
+fn calc_child_orders() -> [[(ChildIndex, ChildMask); 8]; 48] {
     [
         calc_child_orders_flip(2, 1, 0),
         calc_child_orders_flip(2, 0, 1),
@@ -518,7 +517,7 @@ fn calc_child_orders() -> [[ChildIndex; 8]; 48] {
 }
 
 lazy_static! {
-    static ref SORTED_ORDER_INDICES: [[ChildIndex; 8]; 48] = {
+    static ref SORTED_ORDER_INDICES: [[(ChildIndex, ChildMask); 8]; 48] = {
         let orders = calc_child_orders();
         println!("{:#?}", orders);
         orders
