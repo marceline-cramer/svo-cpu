@@ -6,6 +6,7 @@ use minifb::{Key, Window, WindowOptions};
 #[macro_use]
 extern crate lazy_static;
 
+mod binvox;
 mod camera;
 mod fb;
 mod voxbuf;
@@ -14,7 +15,7 @@ const WIDTH: usize = 240;
 const HEIGHT: usize = 180;
 
 fn main() {
-    let vb = voxbuf::VoxBuf::from_binvox(include_bytes!("stanford_bunny.binvox"));
+    let vb = binvox::import_binvox_svo(include_bytes!("stanford_bunny.binvox"));
     // let vb = voxbuf::VoxBuf::new_dummy();
 
     let mut cam = camera::Camera::default();
