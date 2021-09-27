@@ -498,7 +498,7 @@ fn calc_child_orders_flip(x: u8, y: u8, z: u8) -> [[ChildIndex; 8]; 8] {
     for i in 0..8 {
         let order = &mut orders[i];
         for j in 0..8 {
-            order[j] = i as u8 ^ base[j];
+            order[j] = j as u8 ^ base[i];
         }
     }
     orders
