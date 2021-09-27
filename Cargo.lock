@@ -573,6 +573,7 @@ name = "svo-cpu"
 version = "0.1.0"
 dependencies = [
  "glam",
+ "lazy_static",
  "minifb",
 ]
 

@@ -3,6 +3,9 @@
 
 use minifb::{Key, Window, WindowOptions};
 
+#[macro_use]
+extern crate lazy_static;
+
 mod camera;
 mod voxbuf;
 
