@@ -8,3 +8,11 @@ edition = "2018"
 [dependencies]
 glam = "0.18.0"
 minifb = "0.19.3"
+
+[profile.dev]
+opt-level = 2
+lto = "fat"
+
+[profile.release]
+opt-level = 2
+lto = "fat"
