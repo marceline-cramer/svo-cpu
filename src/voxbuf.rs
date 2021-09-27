@@ -100,13 +100,13 @@ impl VoxBuf {
             });
 
             if node.data.color != 0 {
-                const R_MASK: u32 = 0xff0000;
+                let color = (node_ref << 2) & 0xffffff;
+                /*const R_MASK: u32 = 0xff0000;
                 const G_MASK: u32 = 0x00ff00;
                 const B_MASK: u32 = 0x0000ff;
-                let color = (node_ref << 2) & 0xffffff;
                 let color = (((color & R_MASK) >> 1) & R_MASK)
                     | (((color & G_MASK) >> 1) & G_MASK)
-                    | (((color & B_MASK) >> 1) & B_MASK);
+                    | (((color & B_MASK) >> 1) & B_MASK);*/
                 node.data.color = 0xff000000 | color;
             }
 
