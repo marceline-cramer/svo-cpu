@@ -251,8 +251,11 @@ impl VoxBuf {
             let voxel = stem.extend(offset);
 
             let is_leaf = node.is_leaf();
+            if is_leaf {
+                leaf_num += 1
+            };
             if on_node(is_leaf, &node.data, voxel) & !is_leaf {
-                let order = Node::sorting_order(&eye);
+                let order = Node::sorting_order(&eye, &stem);
                 node.for_kids_ordered(order, |index, child| {
                     let origin = stem + Node::index_offset(index, offset);
                     stack.push((*child, origin, depth + 1));
@@ -334,6 +337,8 @@ const HILBERT_ORDER: [(ChildIndex, ChildMask); 8] = [
     (4, 0x10),
 ];
 
+const SORTED_ORDER_INDICES: [[ChildIndex; 8]; 48] = [[0, 1, 2, 3, 4, 5, 6, 7]; 48];
+
 impl Node {
     pub fn get_child(&self, index: ChildIndex) -> NodeRef {
         self.children[index as usize]
@@ -401,11 +406,21 @@ impl Node {
         }
     }
 
-    pub fn for_kids_ordered<F>(&self, order: ChildOrder, f: F)
+    pub fn for_kids_ordered<F>(&self, order: ChildOrder, mut f: F)
     where
         F: FnMut(ChildIndex, &NodeRef),
     {
-        self.for_kids(f);
+        if !self.is_leaf() {
+            let occupancy = self.occupancy.clone();
+            let indices = SORTED_ORDER_INDICES[order as usize];
+            for index in indices.iter() {
+                // TODO: statically cache this
+                let mask = Self::index_to_mask(*index);
+                if (occupancy & mask) != 0 {
+                    f(*index, &self.children[*index as usize]);
+                }
+            }
+        }
     }
 
     pub fn index_offset(index: ChildIndex, offset: f32) -> Vec3A {
@@ -423,12 +438,32 @@ impl Node {
         .into()
     }
 
-    pub fn index_origin(index: ChildIndex) -> Vec3A {
-        Self::index_offset(index, 0.5)
-    }
+    /// based on: https://iquilezles.org/www/articles/volumesort/volumesort.htm
+    pub fn sorting_order(eye: &Vec3A, stem: &Vec3A) -> ChildOrder {
+        let s = eye.cmpgt(*stem).bitmask();
+        let sx = (s & 0b001) as ChildOrder;
+        let sy = ((s & 0b010) >> 1) as ChildOrder;
+        let sz = ((s & 0b100) >> 2) as ChildOrder;
+        let a = (*stem - *eye).abs();
 
-    /// TODO: find literature on this
-    pub fn sorting_order(eye: &Vec3A) -> ChildOrder {
-        0
+        if a.x > a.y && a.x > a.z {
+            if a.y > a.z {
+                (sx << 2) | (sy << 1) | sz
+            } else {
+                8 + ((sx << 2) | (sz << 1) | sy)
+            }
+        } else if a.y > a.z {
+            if a.x > a.z {
+                16 + ((sy << 2) | (sx << 1) | sz)
+            } else {
+                24 + ((sy << 2) | (sz << 1) | sx)
+            }
+        } else {
+            if a.x > a.y {
+                32 + ((sz << 2) | (sx << 1) | sy)
+            } else {
+                40 + ((sz << 2) | (sy << 1) | sx)
+            }
+        }
     }
 }
