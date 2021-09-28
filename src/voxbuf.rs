@@ -161,6 +161,40 @@ impl VoxBuf {
         );
     }
 
+    pub unsafe fn fast_walk<F>(&self, eye: &Vec3A, mut on_node: F)
+    where
+        F: FnMut(bool, &Payload, Vec4) -> bool,
+    {
+        let timer = Instant::now();
+
+        let svo_ptr = self.nodes.as_ptr();
+        let origin = Vec3A::new(0.0, 0.0, 0.0);
+        let mut stack = [(svo_ptr.add(Self::ROOT_NODE as usize), origin, 0); 256];
+        let stack_base = stack.as_mut_ptr();
+        let mut stack_ptr = stack_base.add(1);
+
+        while stack_ptr > stack_base {
+            stack_ptr = stack_ptr.sub(1);
+            let (node_ptr, stem, depth) = *stack_ptr;
+
+            let node = *node_ptr;
+            let offset = 1.0 / ((2 << depth) as f32);
+            let voxel = stem.extend(offset);
+
+            let is_leaf = node.is_leaf();
+            if on_node(is_leaf, &node.data, voxel) & !is_leaf {
+                let order = Node::sorting_order(&eye, &stem);
+                let next_level = depth + 1;
+                node.for_kids_ordered(order, |index, child| {
+                    let origin = stem + Node::index_offset(index, offset);
+                    let next = (svo_ptr.add(*child as usize), origin, next_level);
+                    *stack_ptr = next;
+                    stack_ptr = stack_ptr.add(1);
+                });
+            }
+        }
+    }
+
     pub fn walk_all(&self, eye: &Vec3A) -> Vec<(Payload, Vec4)> {
         let mut nodes = Vec::<(Payload, Vec4)>::new();
         self.walk(eye, |is_leaf, data, voxel| {
@@ -175,14 +209,16 @@ impl VoxBuf {
     pub fn draw(&self, camera: &mut Camera) {
         let timer = Instant::now();
 
-        self.walk(&camera.eye.clone(), |is_leaf, data, voxel| {
-            if is_leaf {
-                camera.draw_voxel(&voxel, data.color);
-                true
-            } else {
-                camera.test_voxel(&voxel)
-            }
-        });
+        unsafe {
+            self.fast_walk(&camera.eye.clone(), |is_leaf, data, voxel| {
+                if is_leaf {
+                    camera.draw_voxel(&voxel, data.color);
+                    true
+                } else {
+                    camera.test_voxel(&voxel)
+                }
+            });
+        };
 
         println!("done drawing in {:?}", timer.elapsed());
     }
@@ -300,7 +336,7 @@ impl Node {
     {
         if !self.is_leaf() {
             let occupancy = self.occupancy.clone();
-            let indices = SORTED_ORDER_INDICES[order as usize];
+            let indices = SORTED_ORDER_INDICES[order as usize].clone();
             for (index, mask) in indices.iter() {
                 if (occupancy & *mask) != 0 {
                     f(*index, &self.children[*index as usize]);
