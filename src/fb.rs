@@ -20,8 +20,8 @@ pub struct Framebuffer<P> {
 
 impl Default for Framebuffer<Pixel> {
     fn default() -> Self {
-        let width = 1280;
-        let height = 720;
+        let width = 1600;
+        let height = 900;
         let data = vec![0; width * height];
         Self {
             width,

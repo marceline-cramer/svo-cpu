@@ -116,10 +116,10 @@ impl Camera {
     }
 
     fn make_vp(eye: &Vec3, width: usize, height: usize) -> Mat4 {
-        const FOV: f32 = 90.0;
+        const FOV: f32 = 65.0;
         const NEAR: f32 = 0.1;
         const FAR: f32 = 100.0;
-        let center = Vec3::new(0.0, -0.25, 0.0);
+        let center = Vec3::new(0.0, -0.15, 0.0);
         let up = Vec3::new(0.0, 1.0, 0.0);
         let v = Mat4::look_at_lh(*eye, center, up);
         let aspect = (width as f32) / (height as f32);

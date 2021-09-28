@@ -19,11 +19,11 @@ pub fn import_binvox_svo(bv: &[u8]) -> VoxBuf {
 
     let mut dim = String::new();
     reader.read_line(&mut dim).unwrap();
-    if !dim.starts_with("dim 512 512 512") {
+    if !dim.starts_with("dim 256 256 256") {
         unimplemented!("unsupported dimension");
     }
 
-    let dim = 512;
+    let dim = 256;
     let dim2 = dim * dim;
 
     let mut junk = String::new();
@@ -64,7 +64,7 @@ pub fn import_binvox_svo(bv: &[u8]) -> VoxBuf {
         u8,      // 4: lod
     )>::new();
 
-    stack.push_front((0, 0, 0, 0, 8));
+    stack.push_front((0, 0, 0, 0, 7));
 
     let mut placed_voxels = 0;
 
