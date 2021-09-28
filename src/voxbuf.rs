@@ -80,6 +80,36 @@ impl VoxBuf {
         true
     }
 
+    /// depth-sorts nodes
+    /// also removes unused nodes
+    pub fn depth_sort_nodes(&mut self) {
+        let timer = Instant::now();
+
+        let mut nodes = Vec::<Node>::new();
+
+        self.depth_sort_sub(&mut nodes, Self::ROOT_NODE);
+
+        println!(
+            "depth-sorted {} nodes to {} nodes in {:?}",
+            self.nodes.len(),
+            nodes.len(),
+            timer.elapsed()
+        );
+
+        self.nodes = nodes;
+    }
+
+    fn depth_sort_sub(&mut self, nodes: &mut Vec<Node>, old_ref: NodeRef) -> NodeRef {
+        let new_ref = nodes.len() as NodeRef;
+        let mut node = self.nodes[old_ref as usize].to_owned();
+        nodes.push(node);
+        node.for_kids_mut(|_index, child| {
+            *child = self.depth_sort_sub(nodes, *child);
+        });
+        nodes[new_ref as usize] = node;
+        new_ref
+    }
+
     /// breadth-sorts nodes
     /// also removes unused nodes
     pub fn breadth_sort_nodes(&mut self) {

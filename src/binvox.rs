@@ -121,10 +121,21 @@ pub fn import_binvox_svo(bv: &[u8]) -> VoxBuf {
 
     let mut vb = VoxBuf::from_nodes(nodes);
     let dummy_eye = Vec3A::new(3.0, 2.0, 1.0);
+
+    print!("unprocessed:\n  ");
     vb.walk_all(&dummy_eye);
+
+    print!("after culling unfilled:\n  ");
     vb.cull_unfilled();
     vb.walk_all(&dummy_eye);
+
+    print!("after breadth-sorting:\n  ");
     vb.breadth_sort_nodes();
     vb.walk_all(&dummy_eye);
+
+    print!("after depth-sorting:\n  ");
+    vb.depth_sort_nodes();
+    vb.walk_all(&dummy_eye);
+
     vb
 }
