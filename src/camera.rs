@@ -87,10 +87,12 @@ impl Camera {
 
         let [x, y, r] = screen_pos.to_array();
 
-        let l = (x - r) as usize;
-        let t = (y - r) as usize;
-        let b = (y + r) as usize;
-        let r = (x + r) as usize;
+        const MIN_MARGIN: usize = 0;
+        const MAX_MARGIN: usize = 1;
+        let l = (x - r) as usize - MIN_MARGIN;
+        let t = (y - r) as usize - MIN_MARGIN;
+        let b = (y + r) as usize + MAX_MARGIN;
+        let r = (x + r) as usize + MAX_MARGIN;
         (l, t, r, b)
     }
 

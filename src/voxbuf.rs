@@ -153,6 +153,14 @@ impl VoxBuf {
         self.nodes = nodes;
     }
 
+    fn depth_to_offset(depth: u32) -> f32 {
+        unsafe {
+            let exp = 126 - depth;
+            let f = exp << 23;
+            std::mem::transmute::<u32, f32>(f)
+        }
+    }
+
     pub fn walk<F>(&self, eye: &Vec3A, mut on_node: F)
     where
         F: FnMut(bool, &Payload, Vec4) -> bool,
@@ -162,12 +170,12 @@ impl VoxBuf {
         let mut walked_num = 0;
         let mut leaf_num = 0;
         let origin = Vec3A::new(0.0, 0.0, 0.0);
-        let mut stack = vec![(Self::ROOT_NODE, origin, 0)];
+        let mut stack = vec![(Self::ROOT_NODE, origin, 0 as u32)];
 
         while let Some((node_ref, stem, depth)) = stack.pop() {
             walked_num += 1;
             let node = self.nodes.get(node_ref as usize).unwrap();
-            let offset = 1.0 / ((2 << depth) as f32);
+            let offset = Self::depth_to_offset(depth);
             let voxel = stem.extend(offset);
 
             let is_leaf = node.is_leaf();
@@ -176,9 +184,10 @@ impl VoxBuf {
             };
             if on_node(is_leaf, &node.data, voxel) & !is_leaf {
                 let order = Node::sorting_order(&eye, &stem);
+                let next_level = depth + 1;
                 node.for_kids_ordered(order, |index, child| {
                     let origin = stem + Node::index_offset(index, offset);
-                    stack.push((*child, origin, depth + 1));
+                    stack.push((*child, origin, next_level));
                 });
             }
         }
@@ -199,7 +208,7 @@ impl VoxBuf {
 
         let svo_ptr = self.nodes.as_ptr();
         let origin = Vec3A::new(0.0, 0.0, 0.0);
-        let mut stack = [(svo_ptr.add(Self::ROOT_NODE as usize), origin, 0); 256];
+        let mut stack = [(svo_ptr.add(Self::ROOT_NODE as usize), origin, 0 as u32); 256];
         let stack_base = stack.as_mut_ptr();
         let mut stack_ptr = stack_base.add(1);
 
@@ -208,7 +217,7 @@ impl VoxBuf {
             let (node_ptr, stem, depth) = *stack_ptr;
 
             let node = *node_ptr;
-            let offset = 1.0 / ((2 << depth) as f32);
+            let offset = Self::depth_to_offset(depth);
             let voxel = stem.extend(offset);
 
             let is_leaf = node.is_leaf();

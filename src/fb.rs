@@ -8,8 +8,8 @@ type PixelSimd = packed_simd::u32x16;
 pub type ColorBuffer = Framebuffer<Pixel>;
 
 pub trait Target<P> {
-    fn draw(&mut self, ptr: *mut P, p: P);
-    fn test(&self, ptr: *const P) -> bool;
+    fn draw(ptr: *mut P, p: P);
+    fn test(ptr: *const P) -> bool;
 }
 
 pub struct Framebuffer<P> {
@@ -52,7 +52,7 @@ const ALPHA_BIAS: u32 = 24;
 const MAX_PIXEL: packed_simd::u32x4 = packed_simd::u32x4::new(0xff, 0xff, 0xff, 0xff);
 
 impl Target<Pixel> for Framebuffer<Pixel> {
-    fn draw(&mut self, ptr: *mut Pixel, p: Pixel) {
+    fn draw(ptr: *mut Pixel, p: Pixel) {
         unsafe {
             let dst = *ptr;
             if dst == 0 {
@@ -71,7 +71,7 @@ impl Target<Pixel> for Framebuffer<Pixel> {
         }
     }
 
-    fn test(&self, ptr: *const Pixel) -> bool {
+    fn test(ptr: *const Pixel) -> bool {
         unsafe { *ptr & 0xff000000 != 0xff000000 }
     }
 }
@@ -80,14 +80,14 @@ impl Framebuffer<Pixel> {
     pub fn draw_point(&mut self, xy: Point, p: Pixel) {
         if let Some(offset) = self.calc_offset(xy) {
             let ptr = unsafe { self.data.as_mut_ptr().add(offset) };
-            self.draw(ptr, p);
+            Self::draw(ptr, p);
         }
     }
 
     pub fn test_point(&self, xy: Point) -> bool {
         if let Some(offset) = self.calc_offset(xy) {
             let ptr = unsafe { self.data.as_ptr().add(offset) };
-            self.test(ptr)
+            Self::test(ptr)
         } else {
             false
         }
@@ -95,42 +95,46 @@ impl Framebuffer<Pixel> {
 
     pub fn draw_rect(&mut self, b: Bounds, c: Pixel) {
         unsafe {
-            let (l, t, r, mut b) = b;
-            let width = r - l;
-            let space = self.width - width;
+            let (l, t, r, b) = b;
+            let w = r - l;
+            let h = b - t;
+            let space = self.width - w;
             let start = t * self.width + l;
             let mut ptr = self.data.as_mut_ptr().add(start);
-            while b > t {
-                let mut r = r;
-                while r > l {
-                    self.draw(ptr, c);
+            let mut y = 0;
+            while y < h {
+                let mut x = 0;
+                while x < w {
+                    Self::draw(ptr, c);
                     ptr = ptr.add(1);
-                    r -= 1;
+                    x += 1;
                 }
                 ptr = ptr.add(space);
-                b -= 1;
+                y += 1;
             }
         }
     }
 
     pub fn test_rect(&self, b: Bounds) -> bool {
         unsafe {
-            let (l, t, r, mut b) = b;
-            let width = r - l;
-            let space = self.width - width;
+            let (l, t, r, b) = b;
+            let w = r - l;
+            let h = b - t;
+            let space = self.width - w;
             let start = t * self.width + l;
             let mut ptr = self.data.as_ptr().add(start);
-            while b > t {
-                let mut r = r;
-                while r > l {
-                    if self.test(ptr) {
+            let mut y = 0;
+            while y < h {
+                let mut x = 0;
+                while x < w {
+                    if Self::test(ptr) {
                         return true;
                     }
                     ptr = ptr.add(1);
-                    r -= 1;
+                    x += 1;
                 }
                 ptr = ptr.add(space);
-                b -= 1;
+                y += 1;
             }
             false
         }
