@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2021 Marceline Cramer
 
+use argh::FromArgs;
 use minifb::{Key, Window, WindowOptions};
 
 #[macro_use]
@@ -11,12 +12,33 @@ mod camera;
 mod fb;
 mod voxbuf;
 
-const WIDTH: usize = 240;
-const HEIGHT: usize = 180;
+use binvox::import_binvox_svo as import_svo;
+use voxbuf::VoxBuf;
+
+#[derive(FromArgs)]
+/// CPU-based sparse voxel octree (SVO) rasterizer
+struct Args {
+    /// model to draw (defaults to "dragon")
+    #[argh(option, default = "default_model()", from_str_fn(select_model))]
+    model: VoxBuf,
+}
+
+fn default_model() -> VoxBuf {
+    import_svo(include_bytes!("models/stanford_bunny.binvox"))
+}
+
+fn select_model(option: &str) -> Result<voxbuf::VoxBuf, String> {
+    match option {
+        "bunny" => Ok(default_model()),
+        "dragon" => Ok(import_svo(include_bytes!("models/stanford_dragon.binvox"))),
+        "buddha" => Ok(import_svo(include_bytes!("models/stanford_buddha.binvox"))),
+        _ => Err("invalid model (must be one of [bunny, dragon, buddha])".into()),
+    }
+}
 
 fn main() {
-    let vb = binvox::import_binvox_svo(include_bytes!("stanford_bunny.binvox"));
-    // let vb = voxbuf::VoxBuf::new_dummy();
+    let args: Args = argh::from_env();
+    let vb = args.model;
 
     let mut cam = camera::Camera::default();
     vb.draw(&mut cam);
