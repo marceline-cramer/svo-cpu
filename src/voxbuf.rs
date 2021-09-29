@@ -4,7 +4,6 @@
 use super::camera::Camera;
 use glam::{Vec3A, Vec4};
 use std::convert::TryInto;
-use std::io::{BufRead, Read};
 use std::time::Instant;
 
 pub type ChildIndex = u8;
@@ -204,8 +203,6 @@ impl VoxBuf {
     where
         F: FnMut(bool, &Payload, Vec4) -> bool,
     {
-        let timer = Instant::now();
-
         let svo_ptr = self.nodes.as_ptr();
         let origin = Vec3A::new(0.0, 0.0, 0.0);
         let mut stack = [(svo_ptr.add(Self::ROOT_NODE as usize), origin, 0 as u32); 256];

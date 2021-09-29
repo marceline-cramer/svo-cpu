@@ -4,7 +4,6 @@ type Bounds = (usize, usize, usize, usize);
 type Point = (usize, usize);
 
 type Pixel = u32;
-type PixelSimd = packed_simd::u32x16;
 pub type ColorBuffer = Framebuffer<Pixel>;
 
 pub trait Target<P> {

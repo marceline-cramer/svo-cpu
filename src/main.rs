@@ -4,16 +4,9 @@
 use argh::FromArgs;
 use minifb::{Key, Window, WindowOptions};
 
-#[macro_use]
-extern crate lazy_static;
-
-mod binvox;
-mod camera;
-mod fb;
-mod voxbuf;
-
-use binvox::import_binvox_svo as import_svo;
-use voxbuf::VoxBuf;
+use svo_cpu::camera::Camera;
+use svo_cpu::binvox::import_binvox_svo as import_svo;
+use svo_cpu::voxbuf::VoxBuf;
 
 #[derive(FromArgs)]
 /// CPU-based sparse voxel octree (SVO) rasterizer
@@ -27,7 +20,7 @@ fn default_model() -> VoxBuf {
     import_svo(include_bytes!("models/stanford_bunny.binvox"))
 }
 
-fn select_model(option: &str) -> Result<voxbuf::VoxBuf, String> {
+fn select_model(option: &str) -> Result<VoxBuf, String> {
     match option {
         "bunny" => Ok(default_model()),
         "dragon" => Ok(import_svo(include_bytes!("models/stanford_dragon.binvox"))),
@@ -40,7 +33,7 @@ fn main() {
     let args: Args = argh::from_env();
     let vb = args.model;
 
-    let mut cam = camera::Camera::default();
+    let mut cam = Camera::default();
     vb.draw(&mut cam);
 
     let mut window = Window::new(
