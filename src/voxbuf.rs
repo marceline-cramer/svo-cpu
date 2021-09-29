@@ -242,11 +242,14 @@ impl VoxBuf {
         nodes
     }
 
-    pub fn draw(&self, camera: &mut Camera) {
+    pub fn draw<CameraImpl>(&self, camera: &mut CameraImpl)
+    where
+        CameraImpl: Camera,
+    {
         let timer = Instant::now();
 
         unsafe {
-            self.fast_walk(&camera.eye.clone(), |is_leaf, data, voxel| {
+            self.fast_walk(&camera.get_eye(), |is_leaf, data, voxel| {
                 if is_leaf {
                     camera.draw_voxel(&voxel, data.color);
                     true
