@@ -4,8 +4,8 @@
 use argh::FromArgs;
 use minifb::{Key, Window, WindowOptions};
 
-use svo_cpu::camera::SpinnyCamera as Camera;
 use svo_cpu::binvox::import_binvox_svo as import_svo;
+use svo_cpu::camera::SpinnyCamera as Camera;
 use svo_cpu::voxbuf::VoxBuf;
 
 #[derive(FromArgs)]
