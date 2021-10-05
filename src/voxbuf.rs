@@ -250,12 +250,7 @@ impl VoxBuf {
 
         unsafe {
             self.fast_walk(&camera.get_eye(), |is_leaf, data, voxel| {
-                if is_leaf {
-                    camera.draw_voxel(&voxel, data.color);
-                    true
-                } else {
-                    camera.test_voxel(&voxel)
-                }
+                camera.handle_voxel(is_leaf, &voxel, data.color)
             });
         };
 
