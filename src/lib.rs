@@ -7,4 +7,5 @@ extern crate lazy_static;
 pub mod binvox;
 pub mod camera;
 pub mod fb;
+pub mod procgen;
 pub mod voxbuf;

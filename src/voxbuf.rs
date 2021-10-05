@@ -170,7 +170,7 @@ impl VoxBuf {
         self.nodes = nodes;
     }
 
-    fn depth_to_offset(depth: u32) -> f32 {
+    pub fn depth_to_offset(depth: u32) -> f32 {
         unsafe {
             let exp = 126 - depth;
             let f = exp << 23;

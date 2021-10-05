@@ -6,6 +6,8 @@ use minifb::{Key, Window, WindowOptions};
 
 use svo_cpu::binvox::import_binvox_svo as import_svo;
 use svo_cpu::camera::SpinnyCamera as Camera;
+use svo_cpu::procgen::terrain::TerrainGen;
+use svo_cpu::procgen::generate_voxbuf;
 use svo_cpu::voxbuf::VoxBuf;
 
 #[derive(FromArgs)]
@@ -25,7 +27,8 @@ fn select_model(option: &str) -> Result<VoxBuf, String> {
         "bunny" => Ok(default_model()),
         "dragon" => Ok(import_svo(include_bytes!("models/stanford_dragon.binvox"))),
         "buddha" => Ok(import_svo(include_bytes!("models/stanford_buddha.binvox"))),
-        _ => Err("invalid model (must be one of [bunny, dragon, buddha])".into()),
+        "terrain" => Ok(generate_voxbuf(TerrainGen::default())),
+        _ => Err("invalid model (must be one of [bunny, dragon, buddha, terrain])".into()),
     }
 }
 
