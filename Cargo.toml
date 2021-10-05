@@ -11,6 +11,7 @@ glam = "0.18.0"
 lazy_static = "1.4.0"
 minifb = "0.19.3"
 packed_simd = { version = "0.3.4", package = "packed_simd_2" }
+rand = "0.7.3"
 
 [profile.dev]
 opt-level = 2
