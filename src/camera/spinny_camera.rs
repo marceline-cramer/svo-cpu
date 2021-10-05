@@ -42,14 +42,14 @@ impl Default for SpinnyCamera {
 
 impl SpinnyCamera {
     fn make_eye(step: f32) -> Vec3 {
-        const R: f32 = 2.0;
-        const H: f32 = 1.0;
+        const R: f32 = 3.0;
+        const H: f32 = 2.0;
         let angle = step;
         Vec3::new(angle.cos() * R, H, angle.sin() * R)
     }
 
     fn make_vp(eye: &Vec3, width: usize, height: usize) -> Mat4 {
-        const FOV: f32 = 65.0;
+        const FOV: f32 = 60.0;
         const NEAR: f32 = 0.1;
         const FAR: f32 = 100.0;
         let center = Vec3::new(0.0, -0.15, 0.0);
