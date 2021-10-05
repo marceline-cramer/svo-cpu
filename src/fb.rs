@@ -95,6 +95,9 @@ impl Framebuffer<Pixel> {
     pub fn draw_rect(&mut self, b: Bounds, c: Pixel) {
         unsafe {
             let (l, t, r, b) = b;
+            if r >= self.width || b >= self.height {
+                return;
+            }
             let w = r - l;
             let h = b - t;
             let space = self.width - w;
