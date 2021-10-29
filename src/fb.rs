@@ -1,5 +1,3 @@
-use minifb::Window;
-
 type Bounds = (usize, usize, usize, usize);
 type Point = (usize, usize);
 
@@ -144,12 +142,6 @@ impl Framebuffer<Pixel> {
 
     pub fn clear(&mut self) {
         self.data.fill(0);
-    }
-
-    pub fn update_window(&mut self, window: &mut Window) {
-        window
-            .update_with_buffer(&self.data, self.width, self.height)
-            .unwrap();
     }
 }
 

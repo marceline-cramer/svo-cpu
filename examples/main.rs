@@ -6,8 +6,8 @@ use minifb::{Key, Window, WindowOptions};
 
 use svo_cpu::binvox::import_binvox_svo as import_svo;
 use svo_cpu::camera::SpinnyCamera as Camera;
-use svo_cpu::procgen::terrain::TerrainGen;
 use svo_cpu::procgen::generate_voxbuf;
+use svo_cpu::procgen::terrain::TerrainGen;
 use svo_cpu::voxbuf::VoxBuf;
 
 #[derive(FromArgs)]
@@ -55,6 +55,8 @@ fn main() {
         cam.update();
         cam.fb.clear();
         vb.draw(&mut cam);
-        cam.fb.update_window(&mut window);
+        window
+            .update_with_buffer(&cam.fb.data, cam.fb.width, cam.fb.height)
+            .unwrap();
     }
 }
