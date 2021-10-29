@@ -2,7 +2,6 @@
 // Copyright (c) 2021 Marceline Cramer
 
 use super::voxbuf::*;
-use glam::Vec3A;
 use std::io::{BufRead, Read};
 use std::time::Instant;
 
