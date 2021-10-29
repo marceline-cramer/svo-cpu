@@ -233,7 +233,8 @@ impl VoxBuf {
 
             let node = *node_ptr;
             let offset = Self::depth_to_offset(depth);
-            let voxel = stem.extend(offset);
+            // TODO bit magic 2.0 ^ -depth * sqrt(3)
+            let voxel = stem.extend(offset * 1.73);
 
             let is_leaf = node.is_leaf();
             if on_node(is_leaf, &node.data, voxel) & !is_leaf {
