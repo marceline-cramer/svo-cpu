@@ -10,6 +10,7 @@ glam = "0.18.0"
 lazy_static = "1.4.0"
 packed_simd = { version = "0.3.4", package = "packed_simd_2" }
 rand = "0.7.3"
+serde = { version = "1.0", features = ["derive"] }
 
 [dev-dependencies]
 argh = "0.1.3"

@@ -3,6 +3,7 @@
 
 use super::camera::Camera;
 use glam::{Vec3A, Vec4};
+use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::time::Instant;
 
@@ -13,6 +14,7 @@ pub type NodeRef = u32;
 
 pub const INVALID_NODE: NodeRef = NodeRef::MAX;
 
+#[derive(Deserialize, Serialize)]
 pub struct VoxBuf {
     nodes: Vec<Node>,
 }
@@ -277,7 +279,7 @@ impl VoxBuf {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct Payload {
     pub color: u32,
 }
@@ -288,7 +290,7 @@ impl Default for Payload {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct Node {
     pub occupancy: ChildMask,
     pub children: [NodeRef; 8],
