@@ -1,3 +1,5 @@
+use glam::Vec3A;
+
 type Bounds = (usize, usize, usize, usize);
 type Point = (usize, usize);
 
@@ -12,6 +14,7 @@ pub trait Target<P> {
 pub struct Framebuffer<P> {
     pub width: usize,
     pub height: usize,
+    pub px: f32,
     pub data: Vec<P>,
 }
 
@@ -19,10 +22,12 @@ impl Default for Framebuffer<Pixel> {
     fn default() -> Self {
         let width = 1600;
         let height = 900;
+        let px = std::cmp::min(width, height) as f32;
         let data = vec![0; width * height];
         Self {
             width,
             height,
+            px,
             data,
         }
     }
@@ -146,6 +151,37 @@ impl Framebuffer<Pixel> {
 }
 
 impl<P> Framebuffer<P> {
+    pub fn frag_xy(&self, frag: &Vec3A) -> (usize, usize) {
+        let w = self.width as f32;
+        let h = self.height as f32;
+        let screen_pos = glam::Vec2::new(frag.x, frag.y) * 0.5 + 0.5;
+        let screen_scale = glam::Vec2::new(w, h);
+        let screen_pos = screen_pos * screen_scale;
+        let screen_pos = screen_pos.floor();
+        let x = screen_pos.x as usize;
+        let y = screen_pos.y as usize;
+        (x, y)
+    }
+
+    pub fn point_bounds(&self, center: &Vec3A) -> (usize, usize, usize, usize) {
+        let w = self.width as f32;
+        let h = self.height as f32;
+        let screen_pos = glam::Vec2::new(center.x, center.y) * 0.5 + 0.5;
+        let screen_scale = Vec3A::new(w, h, self.px);
+        let screen_pos: Vec3A = screen_pos.extend(center.z).into();
+        let screen_pos = screen_pos * screen_scale;
+
+        let [x, y, r] = screen_pos.to_array();
+
+        const MIN_MARGIN: usize = 1;
+        const MAX_MARGIN: usize = 1;
+        let l = (x - r) as usize - MIN_MARGIN;
+        let t = (y - r) as usize - MIN_MARGIN;
+        let b = (y + r) as usize + MAX_MARGIN;
+        let r = (x + r) as usize + MAX_MARGIN;
+        (l, t, r, b)
+    }
+
     fn calc_offset(&self, xy: Point) -> Option<usize> {
         let offset = xy.1 * self.width + xy.0;
         if offset < self.data.len() {

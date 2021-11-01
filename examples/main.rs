@@ -5,7 +5,8 @@ use argh::FromArgs;
 use minifb::{Key, Window, WindowOptions};
 
 use svo_cpu::binvox::import_binvox_svo as import_svo;
-use svo_cpu::camera::SpinnyCamera as Camera;
+use svo_cpu::camera::spinny_camera::SpinnyCamera;
+use svo_cpu::fb::ColorBuffer;
 use svo_cpu::procgen::generate_voxbuf;
 use svo_cpu::procgen::terrain::TerrainGen;
 use svo_cpu::voxbuf::VoxBuf;
@@ -36,13 +37,14 @@ fn main() {
     let args: Args = argh::from_env();
     let vb = args.model;
 
-    let mut cam = Camera::default();
-    vb.draw(&mut cam);
+    let mut fb = ColorBuffer::default();
+    let mut spinny_cam = SpinnyCamera::new(&fb);
+    vb.draw(&spinny_cam.camera, &spinny_cam.draw_config, &mut fb);
 
     let mut window = Window::new(
         "Test - ESC to exit",
-        cam.fb.width,
-        cam.fb.height,
+        fb.width,
+        fb.height,
         WindowOptions::default(),
     )
     .unwrap_or_else(|e| {
@@ -52,11 +54,11 @@ fn main() {
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        cam.update();
-        cam.fb.clear();
-        vb.draw(&mut cam);
+        spinny_cam.update(&fb);
+        fb.clear();
+        vb.draw(&spinny_cam.camera, &spinny_cam.draw_config, &mut fb);
         window
-            .update_with_buffer(&cam.fb.data, cam.fb.width, cam.fb.height)
+            .update_with_buffer(&fb.data, fb.width, fb.height)
             .unwrap();
     }
 }

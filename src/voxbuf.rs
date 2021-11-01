@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2021 Marceline Cramer
 
-use super::camera::Camera;
+use super::camera::{Camera, DrawConfig};
+use super::fb::ColorBuffer;
 use glam::{Vec3A, Vec4};
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
@@ -263,15 +264,12 @@ impl VoxBuf {
         nodes
     }
 
-    pub fn draw<CameraImpl>(&self, camera: &mut CameraImpl)
-    where
-        CameraImpl: Camera,
-    {
+    pub fn draw(&self, camera: &Camera, config: &DrawConfig, fb: &mut ColorBuffer) {
         let timer = Instant::now();
 
         unsafe {
-            self.fast_walk(&camera.get_eye(), |is_leaf, data, voxel| {
-                camera.handle_voxel(is_leaf, &voxel, data.color)
+            self.fast_walk(&camera.eye, |is_leaf, data, voxel| {
+                camera.draw_voxel(fb, config, is_leaf, &voxel, data.color)
             });
         };
 
