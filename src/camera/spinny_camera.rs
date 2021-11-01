@@ -23,7 +23,7 @@ impl SpinnyCamera {
         let draw_config = DrawConfig {
             min_rect: 0.5 / fb.px,
             max_rect: 6.0 / fb.px,
-            max_test: 12.0 / fb.px,
+            max_test: 1024,
         };
 
         Self {

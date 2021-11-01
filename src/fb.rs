@@ -20,8 +20,8 @@ pub struct Framebuffer<P> {
 
 impl Default for Framebuffer<Pixel> {
     fn default() -> Self {
-        let width = 1600;
-        let height = 900;
+        let width = 1280;
+        let height = 720;
         let px = std::cmp::min(width, height) as f32;
         let data = vec![0; width * height];
         Self {
@@ -98,9 +98,6 @@ impl Framebuffer<Pixel> {
     pub fn draw_rect(&mut self, b: Bounds, c: Pixel) {
         unsafe {
             let (l, t, r, b) = b;
-            if r >= self.width || b >= self.height {
-                return;
-            }
             let w = r - l;
             let h = b - t;
             let space = self.width - w;
@@ -163,9 +160,18 @@ impl<P> Framebuffer<P> {
         (x, y)
     }
 
-    pub fn point_bounds(&self, center: &Vec3A) -> (usize, usize, usize, usize) {
+    pub fn point_bounds(&self, center: &Vec3A) -> Option<(usize, usize, usize, usize)> {
+        if center.x < (-center.z - 1.0) || center.y < (-center.z - 1.0) {
+            return None;
+        }
+
         let w = self.width as f32;
         let h = self.height as f32;
+
+        if center.x > (1.0 + center.z) || center.y > (1.0 + center.z) {
+            return None;
+        }
+
         let screen_pos = glam::Vec2::new(center.x, center.y) * 0.5 + 0.5;
         let screen_scale = Vec3A::new(w, h, self.px);
         let screen_pos: Vec3A = screen_pos.extend(center.z).into();
@@ -175,19 +181,23 @@ impl<P> Framebuffer<P> {
 
         const MIN_MARGIN: usize = 1;
         const MAX_MARGIN: usize = 1;
-        let l = (x - r) as usize - MIN_MARGIN;
-        let t = (y - r) as usize - MIN_MARGIN;
-        let b = (y + r) as usize + MAX_MARGIN;
-        let r = (x + r) as usize + MAX_MARGIN;
-        (l, t, r, b)
+        let l = (x - r).max(MIN_MARGIN as f32) as usize - MIN_MARGIN;
+        let t = (y - r).max(MIN_MARGIN as f32) as usize - MIN_MARGIN;
+        let b = ((y + r) as usize + MAX_MARGIN).min(self.height);
+        let r = ((x + r) as usize + MAX_MARGIN).min(self.width);
+
+        if l < r && t < b {
+            Some((l, t, r, b))
+        } else {
+            None
+        }
     }
 
     fn calc_offset(&self, xy: Point) -> Option<usize> {
-        let offset = xy.1 * self.width + xy.0;
-        if offset < self.data.len() {
-            Some(offset)
-        } else {
+        if xy.0 >= self.width || xy.1 >= self.height {
             None
+        } else {
+            Some(xy.1 * self.width + xy.0)
         }
     }
 }

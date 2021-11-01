@@ -14,7 +14,7 @@ pub struct Camera {
 pub struct DrawConfig {
     pub min_rect: f32,
     pub max_rect: f32,
-    pub max_test: f32,
+    pub max_test: usize,
 }
 
 impl Camera {
@@ -37,11 +37,7 @@ impl Camera {
         let projected = self.project_voxel(&center);
         if !is_leaf {
             if projected.z > c.max_rect {
-                if projected.z < c.max_test {
-                    Self::test_rect(fb, &projected)
-                } else {
-                    true
-                }
+                Self::test_rect(c.max_test, fb, &projected)
             } else if projected.z > c.min_rect {
                 Self::draw_rect(fb, &projected, color);
                 false
@@ -60,14 +56,23 @@ impl Camera {
         }
     }
 
-    pub fn test_rect(fb: &mut ColorBuffer, projected: &Vec3A) -> bool {
-        let bounds = fb.point_bounds(projected);
-        fb.test_rect(bounds)
+    pub fn test_rect(max_test: usize, fb: &mut ColorBuffer, projected: &Vec3A) -> bool {
+        if let Some(bounds) = fb.point_bounds(projected) {
+            let area = (bounds.2 - bounds.0) * (bounds.3 - bounds.1);
+            if area < max_test {
+                fb.test_rect(bounds)
+            } else {
+                true
+            }
+        } else {
+            false
+        }
     }
 
     pub fn draw_rect(fb: &mut ColorBuffer, projected: &Vec3A, color: u32) {
-        let bounds = fb.point_bounds(projected);
-        fb.draw_rect(bounds, color);
+        if let Some(bounds) = fb.point_bounds(projected) {
+            fb.draw_rect(bounds, color);
+        }
     }
 
     pub fn draw_point(fb: &mut ColorBuffer, projected: &Vec3A, color: u32) {

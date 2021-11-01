@@ -15,7 +15,7 @@ pub type NodeRef = u32;
 
 pub const INVALID_NODE: NodeRef = NodeRef::MAX;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct VoxBuf {
     nodes: Vec<Node>,
 }
